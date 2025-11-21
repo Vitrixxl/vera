@@ -2,7 +2,7 @@ import { chatMessageHandler } from "@backend/extractor/adapters/chat";
 import { Elysia } from "elysia";
 import z from "zod";
 
-export const webAppRoutes = new Elysia({ prefix: "" }).post(
+export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
   "/message",
   async ({ body: { message, files } }) => {
     const bunFiles = files.map((f) => {
