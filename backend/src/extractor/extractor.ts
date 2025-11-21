@@ -100,8 +100,9 @@ export class Extractor {
 
   private summarizeTextContent = async (
     textContent: string[],
+    userPrompt: string,
   ): Promise<string> => {
-    if (textContent.length) {
+    if (!textContent.length) {
       return "";
     }
 
@@ -120,7 +121,7 @@ export class Extractor {
           },
           {
             role: "user",
-            content: `Please summarize the following extracted text content:\n\n${combinedText}`,
+            content: `User request: "${userPrompt}"\n\nPlease analyze and summarize the following extracted text content in the context of the user's request above:\n\n${combinedText}`,
           },
         ],
         temperature: 0.3,
@@ -136,27 +137,55 @@ export class Extractor {
     return result.data.choices[0]?.message?.content || "";
   };
 
+  askVera = async function* (prompt: string) {
+    const response = await fetch("", {
+      method: "POST",
+      headers: {
+        "X-API-Key": "",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: "",
+        query: prompt,
+      }),
+    });
+    const decoder = new TextDecoder();
+
+    if (!response.body) return "";
+    for await (const chunk of response.body) {
+      const text = decoder.decode(chunk, { stream: true });
+      yield text;
+    }
+  };
+
   /**
    * Full pipeline for the decryption
    * First : - Extract text from img / vid
    * Then : - Ask the ai client to summarize the outputs
    * Finaly : - Call the vera api to fact-check user input and return the vera output
    */
-  decrypt = async (prompt: string, files: Bun.BunFile[]) => {
+  async *decrypt(
+    prompt: string,
+    files: Bun.BunFile[],
+  ): AsyncGenerator<{ data: string; type: "step" | "token" }> {
     const filesTextContent: string[] = [];
-    for (const f of files) {
-      let text!: string | null;
-      if (f.type.startsWith("video")) {
-        text = await this.extractTextFromVideo(f.name!);
-      } else {
-        text = await this.extractTextFromImage(f.name!);
+    let text!: string | null;
+    if (files.length > 0) {
+      yield { type: "step", data: "files" };
+      for (const f of files) {
+        if (f.type.startsWith("video")) {
+          text = await this.extractTextFromVideo(f.name!);
+        } else {
+          text = await this.extractTextFromImage(f.name!);
+        }
+        if (!text) continue;
+        filesTextContent.push(text);
       }
-      if (!text) continue;
-      filesTextContent.push(text);
     }
-
-    const summary = this.summarizeTextContent(filesTextContent);
-    summary;
-    // TODO Make the call to the VERA API
-  };
+    yield { type: "step", data: "summarizing" };
+    const summary = await this.summarizeTextContent(filesTextContent, prompt);
+    for await (const token of this.askVera(summary)) {
+      yield { type: "token", data: token };
+    }
+  }
 }
