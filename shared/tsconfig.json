@@ -15,12 +15,12 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@shared": ["./shared/src"],
-      "@shared/*": ["./shared/src/*"],
-      "@backend": ["./backend/src"],
-      "@backend/*": ["./backend/src/*"],
-      "@frontend": ["./frontend/src"],
-      "@frontend/*": ["./frontend/src/*"]
+      "@shared": ["./src"],
+      "@shared/*": ["./src/*"],
+      "@backend": ["../backend/src"],
+      "@backend/*": ["../backend/src/*"],
+      "@frontend": ["../frontend/src"],
+      "@frontend/*": ["../frontend/src/*"]
     },
 
     // Best practices

@@ -1,6 +1,19 @@
 import { Elysia } from "elysia";
+import { auth } from "./lib/auth";
+import cors from "@elysiajs/cors";
+import z from "zod";
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+const app = new Elysia()
+  .use(
+    cors({
+      credentials: true,
+    }),
+  )
+
+  .mount(auth.handler)
+  .listen(3000);
+
+export type Api = typeof app;
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
