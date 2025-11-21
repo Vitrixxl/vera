@@ -18,5 +18,8 @@
     "db:migrate": "bunx drizzle-kit migrate",
     "db:push": "bunx drizzle-kit push",
     "db:studio": "bunx drizzle-kit studio"
+  },
+  "overrides": {
+    "picomatch": "2.3.1"
   }
 }

@@ -1,0 +1,12 @@
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { betterAuth } from "better-auth/*";
+import { db } from "./db";
+
+export const auth = betterAuth({
+  baseURL: "http://localhost:3000",
+  trustedOrigins: ["http://localhost:4200"],
+
+  database: drizzleAdapter(db, {
+    provider: "pg",
+  }),
+});
