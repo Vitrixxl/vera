@@ -3,15 +3,9 @@ import Tesseract from "tesseract.js";
 import { tryCatchAsync } from "../lib/utils";
 
 export class Extractor {
-  openaiClient: OpenAI;
+  private openaiClient: OpenAI;
 
-  private videosTextContent: string[] = [];
-  private imagesTextContent: string[] = [];
-
-  constructor(
-    private readonly videosPaths: string[] = [],
-    private readonly imagesPaths: string[] = [],
-  ) {
+  constructor() {
     this.openaiClient = new OpenAI({
       apiKey: Bun.env.OPENAI_API_KEY,
     });
@@ -104,17 +98,14 @@ export class Extractor {
    * THis method will ask the ai client to extract the text of the provided image / video url and will return the text
    */
 
-  private summarizeTextContent = async (): Promise<string> => {
-    const allTextContent = [
-      ...this.videosTextContent,
-      ...this.imagesTextContent,
-    ];
-
-    if (allTextContent.length === 0) {
+  private summarizeTextContent = async (
+    textContent: string[],
+  ): Promise<string> => {
+    if (textContent.length) {
       return "";
     }
 
-    const combinedText = allTextContent
+    const combinedText = textContent
       .map((text, index) => `[Content ${index + 1}]\n${text}`)
       .join("\n\n---\n\n");
 
@@ -151,19 +142,20 @@ export class Extractor {
    * Then : - Ask the ai client to summarize the outputs
    * Finaly : - Call the vera api to fact-check user input and return the vera output
    */
-  decrypt = async () => {
-    for (const p of this.videosPaths) {
-      const text = await this.extractTextFromVideo(p);
+  decrypt = async (prompt: string, files: Bun.BunFile[]) => {
+    const filesTextContent: string[] = [];
+    for (const f of files) {
+      let text!: string | null;
+      if (f.type.startsWith("video")) {
+        text = await this.extractTextFromVideo(f.name!);
+      } else {
+        text = await this.extractTextFromImage(f.name!);
+      }
       if (!text) continue;
-      this.videosTextContent.push(text);
-    }
-    for (const p of this.imagesPaths) {
-      const text = await this.extractTextFromImage(p);
-      if (!text) continue;
-      this.videosTextContent.push(text);
+      filesTextContent.push(text);
     }
 
-    const summary = this.summarizeTextContent();
+    const summary = this.summarizeTextContent(filesTextContent);
     summary;
     // TODO Make the call to the VERA API
   };
