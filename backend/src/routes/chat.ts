@@ -9,8 +9,8 @@ export const webAppRoutes = new Elysia({ prefix: "" }).post(
       const file = Bun.file(`/tmp/${Bun.randomUUIDv7()}-${f.name}`);
       return file;
     });
-    const a = chatMessageHandler({ message, files: bunFiles });
-    return;
+    const veraResponse = chatMessageHandler({ message, files: bunFiles });
+    return veraResponse;
   },
   {
     body: z.object({

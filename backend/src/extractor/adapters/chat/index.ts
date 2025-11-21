@@ -1,7 +1,7 @@
 import { Extractor } from "@backend/extractor/extractor";
 import type { BunFile } from "bun";
 
-export const chatMessageHandler = ({
+export const chatMessageHandler = async ({
   message,
   files,
 }: {
@@ -11,5 +11,9 @@ export const chatMessageHandler = ({
   const extractor = new Extractor();
   files[0].name;
 
-  await extractor.decrypt(message);
+  /**
+   * Rien pour l'instant
+   */
+  const output = await extractor.decrypt(message, files);
+  return output;
 };
