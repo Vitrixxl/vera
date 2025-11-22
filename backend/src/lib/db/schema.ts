@@ -1,4 +1,13 @@
-import { pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  boolean,
+  timestamp,
+  pgTableCreator,
+  varchar,
+  integer,
+} from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -64,4 +73,11 @@ export const verification = pgTable("verification", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
+});
+
+export const survey = pgTable("survey", {
+  id: uuid().primaryKey().defaultRandom(),
+  note: integer().notNull(),
+  commentary: varchar(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });

@@ -1,0 +1,53 @@
+import { db } from "@backend/lib/db";
+import { survey } from "@backend/lib/db/schema";
+import { authMacro } from "@backend/macros/auth";
+import {
+  getSurveyCount,
+  getSurveys,
+  getSurveysAvgNote,
+} from "@backend/services/survey";
+import Elysia from "elysia";
+import z from "zod";
+
+export const surveyRoutes = new Elysia({ prefix: "/survey" })
+  .use(authMacro)
+  .get(
+    "/surveys",
+    async ({ query: { limit, cursor, from, to } }) => {
+      const surveys = await getSurveys(limit + 1, cursor, { from, to });
+      return {
+        surveys: surveys.slice(0, limit),
+        nextCursor: surveys.length > limit ? cursor + limit : null,
+      };
+    },
+    {
+      query: z.object({
+        limit: z.coerce.number().default(10),
+        cursor: z.coerce.number().default(0),
+        from: z.coerce.date().nullable(),
+        to: z.coerce.date().nullable(),
+      }),
+    },
+  )
+  .get(
+    "/avg",
+    async () => {
+      return await getSurveysAvgNote();
+    },
+    { auth: true },
+  )
+  .get("/total", async () => {
+    return await getSurveyCount();
+  })
+  .post(
+    "/",
+    async ({ body: { note, commentary } }) => {
+      await db.insert(survey).values({ note, commentary });
+    },
+    {
+      body: z.object({
+        note: z.number(),
+        commentary: z.string().nullable(),
+      }),
+    },
+  );
