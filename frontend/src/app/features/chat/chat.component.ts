@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { api } from '../../../lib/api';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-chat',
@@ -372,7 +373,7 @@ export class ChatComponent {
       formData.append('message', userMessage);
       files.forEach((file) => formData.append('files', file));
 
-      const response = await fetch('http://localhost:3000/chat/message', {
+      const response = await fetch(`${environment.apiUrl}/chat/message`, {
         method: 'POST',
         body: formData,
         credentials: 'include',

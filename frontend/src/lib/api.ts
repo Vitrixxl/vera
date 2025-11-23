@@ -1,4 +1,5 @@
 import { treaty } from '@elysiajs/eden';
 import type { Api } from '@shared';
+import { environment } from '../environments/environment';
 
-export const api = treaty<Api>('http://localhost:3000');
+export const api = treaty<Api>(environment.apiUrl);
