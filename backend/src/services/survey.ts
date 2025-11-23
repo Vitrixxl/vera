@@ -1,19 +1,20 @@
 import { db } from "@backend/lib/db";
 import { survey } from "@backend/lib/db/schema";
-import { and, avg, count, gt, lt } from "drizzle-orm";
+import { and, avg, count, desc, gt, lt } from "drizzle-orm";
 
 export const getSurveys = async (
   limit: number,
   cursor: number,
-  { from, to }: { from: Date | null; to: Date | null },
+  // { from, to }: { from: Date | null; to: Date | null },
 ) => {
   return await db.query.survey.findMany({
-    where: and(
-      from ? gt(survey.createdAt, from) : undefined,
-      to ? lt(survey.createdAt, to) : undefined,
-    ),
+    // where: and(
+    //   from ? gt(survey.createdAt, from) : undefined,
+    //   to ? lt(survey.createdAt, to) : undefined,
+    // ),
     limit,
     offset: cursor,
+    orderBy: desc(survey.createdAt),
   });
 };
 

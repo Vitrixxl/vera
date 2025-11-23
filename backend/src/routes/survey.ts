@@ -13,9 +13,9 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
   .use(authMacro)
   .get(
     "/surveys",
-    async ({ query: { limit, cursor, from, to } }) => {
-      const surveys = await getSurveys(limit + 1, cursor, { from, to });
-      console.log({ surveys });
+    async ({ query: { limit, cursor } }) => {
+      console.log("surveys");
+      const surveys = await getSurveys(limit + 1, cursor);
       return {
         surveys: surveys.slice(0, limit),
         nextCursor: surveys.length > limit ? cursor + limit : null,
@@ -25,8 +25,8 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
       query: z.object({
         limit: z.coerce.number().default(10),
         cursor: z.coerce.number().default(0),
-        from: z.coerce.date().nullable(),
-        to: z.coerce.date().nullable(),
+        // from: z.coerce.date().nullable(),
+        // to: z.coerce.date().nullable(),
       }),
     },
   )
