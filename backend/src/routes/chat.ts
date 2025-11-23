@@ -1,31 +1,35 @@
 import { chatMessageHandler } from "@backend/extractor/adapters/chat";
-import { Elysia } from "elysia";
-import z from "zod";
+import { Elysia, t, sse } from "elysia";
 
 export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
   "/message",
-  async ({ body: { message, files } }) => {
-    const bunFiles = files.map((f) => {
+  async function* ({ body: { message, files } }) {
+    const bunFiles: Bun.BunFile[] = [];
+    for (const f of files) {
       const file = Bun.file(`/tmp/${Bun.randomUUIDv7()}-${f.name}`);
-      return file;
-    });
-    const veraResponse = chatMessageHandler({ message, files: bunFiles });
-    return veraResponse;
+      file.write(await f.arrayBuffer());
+      bunFiles.push(file);
+    }
+    for await (const event of chatMessageHandler({
+      message,
+      files: bunFiles,
+    })) {
+      yield sse(event);
+    }
+    await Promise.all(bunFiles.map((f) => f.delete()));
   },
   {
-    body: z.object({
-      message: z.string(),
-      files: z.array(
-        z
-          .file()
-          .mime([
-            "video/mp4",
-            "image/png",
-            "image/jpeg",
-            "image/webp",
-            "video/webm",
-          ]),
-      ),
+    body: t.Object({
+      message: t.String(),
+      files: t.Files({
+        type: [
+          "video/mp4",
+          "image/png",
+          "image/jpeg",
+          "image/webp",
+          "video/webm",
+        ],
+      }),
     }),
   },
 );

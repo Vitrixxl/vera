@@ -15,6 +15,7 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
     "/surveys",
     async ({ query: { limit, cursor, from, to } }) => {
       const surveys = await getSurveys(limit + 1, cursor, { from, to });
+      console.log({ surveys });
       return {
         surveys: surveys.slice(0, limit),
         nextCursor: surveys.length > limit ? cursor + limit : null,
@@ -29,20 +30,21 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
       }),
     },
   )
-  .get(
-    "/avg",
-    async () => {
-      return await getSurveysAvgNote();
-    },
-    { auth: true },
-  )
+  .get("/avg", async () => {
+    return await getSurveysAvgNote();
+  })
   .get("/total", async () => {
     return await getSurveyCount();
   })
   .post(
     "/",
     async ({ body: { note, commentary } }) => {
-      await db.insert(survey).values({ note, commentary });
+      console.log({ note, commentary });
+      const a = await db
+        .insert(survey)
+        .values({ note, commentary })
+        .returning({ id: survey.id });
+      console.log(a);
     },
     {
       body: z.object({

@@ -104,3 +104,47 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+
+---
+
+## Angular Frontend Project (Vera)
+
+### Architecture Overview
+
+**Pages:**
+1. `/` - Landing page avec redirection vers `/chat`
+2. `/chat` - Page avec input centré (style ChatGPT) qui appelle le endpoint `webapp` du backend
+3. `/dashboard` - Affiche les statistiques de survey (protégé par auth)
+4. `/login` - Page de connexion (email + password uniquement, pas de register)
+
+**API Calls:**
+- Utiliser `lib/api.ts` pour tous les appels API
+- L'objet dans ce fichier permet d'appeler l'API simplement
+
+**Authentication:**
+- Utiliser Better Auth
+- Protéger `/dashboard` avec un guard d'authentification
+- Seuls les utilisateurs authentifiés peuvent accéder au dashboard
+
+**Styling:**
+- Utiliser uniquement TailwindCSS pour les composants
+- Pas de bibliothèque de composants additionnelle
+
+**Architecture des dossiers:**
+```
+src/app/
+├── core/
+│   ├── services/
+│   │   └── auth.service.ts
+│   └── guards/
+│       └── auth.guard.ts
+├── features/
+│   ├── landing/
+│   ├── chat/
+│   ├── dashboard/
+│   └── auth/
+│       └── login/
+├── app.component.ts
+├── app.routes.ts
+└── app.config.ts
+```

@@ -7,7 +7,7 @@ export class Extractor {
 
   constructor() {
     this.openaiClient = new OpenAI({
-      apiKey: Bun.env.OPENAI_API_KEY,
+      apiKey: Bun.env["OPENAI_API_KEY"],
     });
   }
 

@@ -20,7 +20,7 @@ export const getSurveys = async (
 export const getSurveysAvgNote = async () => {
   const result = await db.select({ avg: avg(survey.note) }).from(survey);
   if (!result || result.length == 0) return null;
-  return result[0].avg;
+  return Number(result[0].avg);
 };
 
 export const getSurveyCount = async () => {
