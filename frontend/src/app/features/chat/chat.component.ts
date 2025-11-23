@@ -328,7 +328,7 @@ export class ChatComponent {
       this.urlInput = '';
     } catch (error) {
       console.error('Error fetching URL:', error);
-      alert('Erreur lors du chargement du fichier depuis l\'URL');
+      alert("Erreur lors du chargement du fichier depuis l'URL");
     }
   }
 
