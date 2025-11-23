@@ -9,7 +9,6 @@ export async function* chatMessageHandler({
   files: BunFile[];
 }) {
   const extractor = new Extractor();
-  files[0].name;
 
   /**
    * Rien pour l'instant

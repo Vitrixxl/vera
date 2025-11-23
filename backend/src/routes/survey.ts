@@ -25,8 +25,6 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
       query: z.object({
         limit: z.coerce.number().default(10),
         cursor: z.coerce.number().default(0),
-        // from: z.coerce.date().nullable(),
-        // to: z.coerce.date().nullable(),
       }),
     },
   )

@@ -102,10 +102,6 @@ export class Extractor {
     textContent: string[],
     userPrompt: string,
   ): Promise<string> => {
-    if (!textContent.length) {
-      return "";
-    }
-
     const combinedText = textContent
       .map((text, index) => `[Content ${index + 1}]\n${text}`)
       .join("\n\n---\n\n");
@@ -138,17 +134,20 @@ export class Extractor {
   };
 
   askVera = async function* (prompt: string) {
-    const response = await fetch("", {
-      method: "POST",
-      headers: {
-        "X-API-Key": "",
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://feat-api-partner---api-ksrn3vjgma-od.a.run.app/api/v1/chat",
+      {
+        method: "POST",
+        headers: {
+          "X-API-Key": Bun.env["VERA_API_KEY"] as string,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: "test",
+          query: prompt,
+        }),
       },
-      body: JSON.stringify({
-        userId: "",
-        query: prompt,
-      }),
-    });
+    );
     const decoder = new TextDecoder();
 
     if (!response.body) return "";
@@ -184,7 +183,9 @@ export class Extractor {
     }
     yield { type: "step", data: "summarizing" };
     const summary = await this.summarizeTextContent(filesTextContent, prompt);
+    console.log("summary", summary);
     for await (const token of this.askVera(summary)) {
+      console.log(token);
       yield { type: "token", data: token };
     }
   }

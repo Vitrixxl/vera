@@ -25,10 +25,10 @@ import { api } from '../../../lib/api';
       </header>
 
       <!-- Main Content -->
-      <main class="flex-1 flex items-center justify-center p-4">
+      <main class="flex-1 flex items-start justify-center p-4">
         <div class="w-full max-w-3xl">
-          <!-- Messages Area (placeholder) -->
-          <div class="mb-32">
+          <!-- Messages Area -->
+          <div class="mb-32 space-y-4">
             @if (messages().length === 0) {
               <div class="text-center text-gray-400 py-12">
                 <svg
@@ -46,6 +46,42 @@ import { api } from '../../../lib/api';
                 </svg>
                 <p class="text-lg">Start a conversation</p>
               </div>
+            }
+
+            @for (message of messages(); track message.id) {
+              <!-- User Message -->
+              @if (message.role === 'user') {
+                <div class="flex justify-end">
+                  <div class="bg-indigo-600 text-white rounded-2xl px-4 py-2 max-w-2xl">
+                    <p class="whitespace-pre-wrap">{{ message.content }}</p>
+                  </div>
+                </div>
+              }
+
+              <!-- Assistant Message -->
+              @if (message.role === 'assistant') {
+                <div class="flex justify-start">
+                  <div
+                    class="bg-white rounded-2xl px-4 py-2 max-w-2xl shadow-sm border border-gray-200"
+                  >
+                    <!-- Steps -->
+                    @if (message.steps && message.steps.length > 0) {
+                      <div class="mb-2 space-y-1">
+                        @for (step of message.steps; track $index) {
+                          <div class="text-xs text-gray-500 italic">{{ step }}</div>
+                        }
+                      </div>
+                    }
+                    <!-- Response -->
+                    @if (message.content) {
+                      <p class="whitespace-pre-wrap text-gray-900">{{ message.content }}</p>
+                    }
+                    @if (message.isStreaming) {
+                      <span class="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1"></span>
+                    }
+                  </div>
+                </div>
+              }
             }
           </div>
 
@@ -100,9 +136,36 @@ import { api } from '../../../lib/api';
                   </div>
                 }
 
+                <!-- URL Input -->
+                @if (showUrlInput()) {
+                  <div class="px-4 pt-3 flex gap-2">
+                    <input
+                      [(ngModel)]="urlInput"
+                      type="url"
+                      placeholder="Coller l'URL d'une image ou vidéo..."
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      (click)="addFromUrl()"
+                      type="button"
+                      class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      Ajouter
+                    </button>
+                    <button
+                      (click)="toggleUrlInput()"
+                      type="button"
+                      class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                }
+
                 <textarea
                   [(ngModel)]="inputText"
                   (keydown.enter)="handleSubmit($any($event))"
+                  (paste)="onPaste($any($event))"
                   placeholder="Message Vera..."
                   rows="1"
                   class="w-full px-4 py-3 rounded-2xl resize-none focus:outline-none"
@@ -132,6 +195,21 @@ import { api } from '../../../lib/api';
                         ></path>
                       </svg>
                     </button>
+                    <button
+                      (click)="toggleUrlInput()"
+                      type="button"
+                      class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                      title="Add from URL"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                        ></path>
+                      </svg>
+                    </button>
                     <span class="text-xs text-gray-400">Press Enter to send</span>
                   </div>
                   <button
@@ -155,6 +233,9 @@ export class ChatComponent {
   messages = signal<any[]>([]);
   selectedFiles = signal<File[]>([]);
   isLoading = signal(false);
+  messageIdCounter = 0;
+  showUrlInput = signal(false);
+  urlInput = '';
 
   // MIME types acceptés par le backend
   private readonly ACCEPTED_MIME_TYPES = [
@@ -166,6 +247,10 @@ export class ChatComponent {
   ];
 
   constructor(private router: Router) {}
+
+  private generateMessageId(): string {
+    return `msg-${Date.now()}-${this.messageIdCounter++}`;
+  }
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -196,6 +281,57 @@ export class ChatComponent {
     this.selectedFiles.update((files) => files.filter((file) => file !== fileToRemove));
   }
 
+  async onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file && this.ACCEPTED_MIME_TYPES.includes(file.type)) {
+          this.selectedFiles.update((files) => [...files, file]);
+        } else if (file) {
+          alert(
+            `Le fichier "${file.name}" n'est pas un format accepté.\nFormats acceptés: MP4, WebM, PNG, JPEG, WebP`,
+          );
+        }
+      }
+    }
+  }
+
+  toggleUrlInput() {
+    this.showUrlInput.update((show) => !show);
+    this.urlInput = '';
+  }
+
+  async addFromUrl() {
+    if (!this.urlInput.trim()) return;
+
+    try {
+      const response = await fetch(this.urlInput);
+      const contentType = response.headers.get('content-type');
+
+      if (!contentType || !this.ACCEPTED_MIME_TYPES.includes(contentType)) {
+        alert(
+          `L'URL ne pointe pas vers un format accepté.\nFormats acceptés: MP4, WebM, PNG, JPEG, WebP`,
+        );
+        return;
+      }
+
+      const blob = await response.blob();
+      const filename = this.urlInput.split('/').pop() || 'file';
+      const file = new File([blob], filename, { type: contentType });
+
+      this.selectedFiles.update((files) => [...files, file]);
+      this.showUrlInput.set(false);
+      this.urlInput = '';
+    } catch (error) {
+      console.error('Error fetching URL:', error);
+      alert('Erreur lors du chargement du fichier depuis l\'URL');
+    }
+  }
+
   async handleSubmit(event?: KeyboardEvent) {
     if (event) {
       event.preventDefault();
@@ -203,34 +339,113 @@ export class ChatComponent {
 
     if (!this.inputText.trim() && this.selectedFiles().length === 0) return;
 
+    const userMessage = this.inputText;
+    const files = this.selectedFiles();
+
+    // Add user message
+    const userMessageObj = {
+      id: this.generateMessageId(),
+      role: 'user',
+      content: userMessage,
+    };
+    this.messages.update((msgs) => [...msgs, userMessageObj]);
+
+    // Clear inputs
+    this.inputText = '';
+    this.selectedFiles.set([]);
     this.isLoading.set(true);
 
+    // Add assistant message (streaming)
+    const assistantMessageId = this.generateMessageId();
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      steps: [] as string[],
+      isStreaming: true,
+    };
+    this.messages.update((msgs) => [...msgs, assistantMessage]);
+
     try {
-      console.log('Sending:', {
-        message: this.inputText,
-        filesCount: this.selectedFiles().length,
-        fileTypes: this.selectedFiles().map((f) => f.type),
+      // Use FormData for SSE streaming
+      const formData = new FormData();
+      formData.append('message', userMessage);
+      files.forEach((file) => formData.append('files', file));
+
+      const response = await fetch('http://localhost:3000/chat/message', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
       });
 
-      const { data, error } = await api.chat.message.post({
-        message: this.inputText || '',
-        files: this.selectedFiles(),
-      });
-
-      if (error) {
-        console.error('Chat error:', error);
-        this.isLoading.set(false);
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to send message');
       }
 
-      console.log('Vera response:', data);
-      // TODO: Handle response and display it
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      // Clear inputs
-      this.inputText = '';
-      this.selectedFiles.set([]);
+      if (!reader) throw new Error('No reader available');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6).trim();
+            if (!data) continue;
+
+            try {
+              const event = JSON.parse(data);
+
+              this.messages.update((msgs) => {
+                const msgIndex = msgs.findIndex((m) => m.id === assistantMessageId);
+                if (msgIndex === -1) return msgs;
+
+                const updatedMsgs = [...msgs];
+                const msg = { ...updatedMsgs[msgIndex] };
+
+                if (event.type === 'step') {
+                  msg.steps = [...msg.steps, event.data];
+                } else if (event.type === 'token') {
+                  msg.content += event.data;
+                }
+
+                updatedMsgs[msgIndex] = msg;
+                return updatedMsgs;
+              });
+            } catch (e) {
+              console.warn('Failed to parse SSE event:', data);
+            }
+          }
+        }
+      }
+
+      // Mark as done streaming
+      this.messages.update((msgs) => {
+        const msgIndex = msgs.findIndex((m) => m.id === assistantMessageId);
+        if (msgIndex === -1) return msgs;
+        const updatedMsgs = [...msgs];
+        updatedMsgs[msgIndex] = { ...updatedMsgs[msgIndex], isStreaming: false };
+        return updatedMsgs;
+      });
     } catch (err) {
       console.error('Chat error:', err);
+      this.messages.update((msgs) => {
+        const msgIndex = msgs.findIndex((m) => m.id === assistantMessageId);
+        if (msgIndex === -1) return msgs;
+        const updatedMsgs = [...msgs];
+        updatedMsgs[msgIndex] = {
+          ...updatedMsgs[msgIndex],
+          content: 'Error: Failed to get response',
+          isStreaming: false,
+        };
+        return updatedMsgs;
+      });
     } finally {
       this.isLoading.set(false);
     }
