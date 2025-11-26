@@ -21,6 +21,7 @@ let count = 0;
 export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
   "/",
   async ({ body }) => {
+    count++;
     await Bun.write(`body${count}.json`, JSON.stringify(body, null, 2));
     // const message = body.message as TelegramMessage;
     // if (!message) {
