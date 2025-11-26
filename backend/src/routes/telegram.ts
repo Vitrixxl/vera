@@ -14,28 +14,43 @@
  */
 
 import { Extractor } from "@backend/extractor/extractor";
-import { TelegramMessage, TelegramUpdate } from "@backend/types/telegram";
+import {
+  downloadTelegramFile,
+  sendTelegramMessage,
+} from "@backend/services/telegram";
+import { TelegramMessage } from "@backend/types/telegram";
 import Elysia from "elysia";
 
 let count = 0;
 export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
   "/",
   async ({ body }) => {
-    count++;
     await Bun.write(`body${count}.json`, JSON.stringify(body, null, 2));
-    // const message = body.message as TelegramMessage;
-    // if (!message) {
-    //   return;
-    // }
-    // await Bun.write("message.json", JSON.stringify(message, null, 2));
-    // const extractor = new Extractor();
-    // let output = "";
-    // for await (const data of extractor.decrypt(message.text ?? "", [])) {
-    //   if (data.type == "token") {
-    //     output += data.data;
-    //   }
-    // }
-    //
-    // return output;
+    const message = (body as any).message as TelegramMessage;
+    let files: Bun.BunFile[] = [];
+    if (message.photo) {
+      const file = await downloadTelegramFile(
+        message.photo[message.photo.length - 1].file_id,
+      );
+      files.push(file);
+    }
+    if (message.video) {
+      const file = await downloadTelegramFile(message.video.file_id);
+      files.push(file);
+    }
+    let prompt = "";
+    if (message.caption) {
+      prompt = message.caption;
+    }
+    if (message.text) {
+      prompt = message.text;
+    }
+    const extractor = new Extractor();
+    let veraResponse = "";
+    for await (const data of extractor.decrypt(prompt, files)) {
+      if (data.type != "token") continue;
+      veraResponse += data.data;
+    }
+    await sendTelegramMessage(message.chat.id, veraResponse);
   },
 );

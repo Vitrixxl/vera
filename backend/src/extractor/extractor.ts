@@ -99,22 +99,31 @@ export class Extractor {
       .map((text, index) => `[Content ${index + 1}]\n${text}`)
       .join("\n\n---\n\n");
 
+    const hasUserPrompt = userPrompt && userPrompt.trim().length > 0;
+
+    const systemPrompt = hasUserPrompt
+      ? `You are a helpful assistant that reformulates user questions for fact-checking. Your task is to take the user's question and the extracted content, then create a clear, specific question that can be fact-checked. Include ALL relevant details from the extracted content (names, dates, numbers, statistics, quotes, specific claims) in your reformulated question. Output ONLY the reformulated question, nothing else.`
+      : `You are a helpful assistant that creates fact-checking questions from content. Your task is to analyze the extracted content, identify the main claim or affirmation, and formulate it as a clear question to be fact-checked. Include ALL relevant details (names, dates, numbers, statistics, quotes, specific claims). Output ONLY the question in the format: "Est-il vrai que [claim]?" or "Is it true that [claim]?" depending on the language of the content.`;
+
+    const userMessage = hasUserPrompt
+      ? `User question: "${userPrompt}"\n\nExtracted content:\n${combinedText}\n\nReformulate the user's question incorporating the relevant facts from the extracted content.`
+      : `Extracted content:\n${combinedText}\n\nIdentify the main claim and formulate a fact-checking question.`;
+
     const result = await tryCatchAsync(
       this.openaiClient.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content:
-              "You are a helpful assistant that summarizes extracted text content from images and videos. CRITICAL: Do NOT omit any details, facts, claims, or information as the output will be fact-checked. Include ALL names, dates, numbers, statistics, quotes, and specific claims. Provide a comprehensive summary that preserves every piece of verifiable information.",
+            content: systemPrompt,
           },
           {
             role: "user",
-            content: `User request: "${userPrompt}"\n\nPlease analyze and summarize the following extracted text content in the context of the user's request above:\n\n${combinedText}`,
+            content: userMessage,
           },
         ],
         temperature: 0.3,
-        max_tokens: 1000,
+        max_tokens: 500,
       }),
     );
 

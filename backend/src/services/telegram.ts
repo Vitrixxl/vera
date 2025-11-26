@@ -1,13 +1,6 @@
-import { Telegraf } from "telegraf";
-import { message } from "telegraf/filters";
+import { FileInfo } from "@backend/types";
 
-const bot = new Telegraf(Bun.env["TG_BOT_TOKEN"] as string);
-
-bot.on(message("media_group_id"), async (ctx) => {
-  ctx.message.media_group_id;
-});
-
-export const sendTelegramMessage = async (chatId: string, content: string) => {
+export const sendTelegramMessage = async (chatId: number, content: string) => {
   const url = `https://api.telegram.org/bot${Bun.env["BOT_TOKEN"]}/sendMessage`;
 
   const res = await fetch(url, {
@@ -24,4 +17,25 @@ export const sendTelegramMessage = async (chatId: string, content: string) => {
   if (!data.ok) {
     throw new Error("Erreur API Telegram : " + JSON.stringify(data));
   }
+};
+
+export const downloadTelegramFile = async (fileId: string) => {
+  const res = await fetch(
+    `https://api.telegram.org/bot${Bun.env["TG_BOT_TOKEN"]}/getFile?file_id=${fileId}`,
+  );
+
+  const data = (await res.json()) as FileInfo;
+  if (!data.ok || !data.result.file_path)
+    throw new Error("Error while retriving file info");
+
+  const parts = data.result.file_path.split("/");
+  const tempFile = Bun.file(
+    `/tmp/${Bun.randomUUIDv7()}-${parts[parts.length - 1]}`,
+  );
+  const fileRes = await fetch(
+    `https://api.telegram.org/file/bot${Bun.env["TG_BOT_TOKEN"]}/${data.result.file_path}`,
+  );
+
+  tempFile.write(fileRes);
+  return tempFile;
 };

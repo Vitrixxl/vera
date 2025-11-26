@@ -312,3 +312,12 @@ export interface TelegramMessage {
 
   reply_markup?: unknown; // InlineKeyboardMarkup
 }
+export interface FileInfo {
+  ok: boolean;
+  result: {
+    file_id: string;
+    file_unique_id: string;
+    file_size?: number;
+    file_path?: string;
+  };
+}
