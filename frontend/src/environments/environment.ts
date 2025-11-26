@@ -1,3 +1,6 @@
+const isProduction = typeof location !== 'undefined' && location.port !== '4200';
+
 export const environment = {
-  apiUrl: import.meta.env['VITE_API_URL'] || 'http://localhost:3000',
+  production: isProduction,
+  apiUrl: isProduction ? '/api' : 'http://localhost:3000',
 };

@@ -19,7 +19,6 @@ export class Extractor {
       return null;
     }
 
-    // Detect language in the image
     const detectResult = await tryCatchAsync<any>(Tesseract.detect(path));
     if (detectResult.error) {
       console.error("Error detecting language in image:", detectResult.error);
@@ -28,7 +27,6 @@ export class Extractor {
 
     const language = detectResult.data.data.language;
 
-    // Extract text from image
     const recognizeResult = await tryCatchAsync(
       Tesseract.recognize(path, language),
     );
@@ -48,10 +46,8 @@ export class Extractor {
       return null;
     }
 
-    // Create a temporary audio file path
     const audioPath = `${path}.audio.mp3`;
 
-    // Extract audio from video using ffmpeg
     const ffmpegResult = await tryCatchAsync(
       Bun.$`ffmpeg -i ${path} -vn -acodec libmp3lame -q:a 2 ${audioPath} -y`,
     );
@@ -62,7 +58,6 @@ export class Extractor {
       return null;
     }
 
-    // Check if audio file was created
     const audioFile = Bun.file(audioPath);
     if (!(await audioFile.exists())) {
       console.error("Failed to extract audio from video");
@@ -70,7 +65,6 @@ export class Extractor {
       return null;
     }
 
-    // Transcribe audio using OpenAI Whisper
     const transcriptionResult = await tryCatchAsync(
       this.openaiClient.audio.transcriptions.create({
         file: audioFile,
@@ -97,7 +91,6 @@ export class Extractor {
   /**
    * THis method will ask the ai client to extract the text of the provided image / video url and will return the text
    */
-
   private summarizeTextContent = async (
     textContent: string[],
     userPrompt: string,
@@ -183,9 +176,7 @@ export class Extractor {
     }
     yield { type: "step", data: "summarizing" };
     const summary = await this.summarizeTextContent(filesTextContent, prompt);
-    console.log("summary", summary);
     for await (const token of this.askVera(summary)) {
-      console.log(token);
       yield { type: "token", data: token };
     }
   }

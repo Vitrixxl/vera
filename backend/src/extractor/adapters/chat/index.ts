@@ -10,9 +10,6 @@ export async function* chatMessageHandler({
 }) {
   const extractor = new Extractor();
 
-  /**
-   * Rien pour l'instant
-   */
   for await (const token of extractor.decrypt(message, files)) {
     yield token;
   }

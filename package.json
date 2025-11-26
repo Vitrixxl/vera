@@ -9,9 +9,8 @@
     "shared"
   ],
   "scripts": {
-    "dev:front": "bun --cwd frontend start",
-    "dev:back": "bun --cwd backend dev",
-    "dev:game": "bun --cwd frontend dev",
+    "dev:front": "bun --cwd frontend start --host",
+    "dev:back": "bun --cwd backend dev --host",
     "dev": "concurrently --names \"backend,frontend\" --prefix-colors \"blue,magenta\" \"bun run dev:back\" \"bun run dev:front\"",
     "build:front": "bun --cwd electron build",
     "shadcn": "bunx --bun --cwd electron shadcn@latest",

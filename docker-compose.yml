@@ -19,5 +19,37 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    image: oven/bun:latest
+    container_name: vera-backend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    command: sh -c "bun install && bun run src/index.ts"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: vera-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/ssl
+      - ./init-ssl.sh:/init-ssl.sh:ro
+      - ./frontend/dist/app/browser:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    command: sh /init-ssl.sh
+
 volumes:
   postgres_data:
+  backend_node_modules:

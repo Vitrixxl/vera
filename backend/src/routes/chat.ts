@@ -1,10 +1,11 @@
-import { chatMessageHandler } from "@backend/extractor/adapters/chat";
+import { Extractor } from "@backend/extractor/extractor";
 import { Elysia, t, sse } from "elysia";
 
 export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
   "/message",
   async function* ({ body: { message, files } }) {
     const bunFiles: Bun.BunFile[] = [];
+    const extractor = new Extractor();
     if (files) {
       for (const f of files) {
         const file = Bun.file(`/tmp/${Bun.randomUUIDv7()}-${f.name}`);
@@ -12,10 +13,7 @@ export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
         bunFiles.push(file);
       }
     }
-    for await (const event of chatMessageHandler({
-      message,
-      files: bunFiles,
-    })) {
+    for await (const event of extractor.decrypt(message, bunFiles)) {
       yield sse(JSON.stringify(event));
     }
     await Promise.all(bunFiles.map((f) => f.delete()));
