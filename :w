@@ -13,7 +13,6 @@
          { "chat_id": chat_id, "text": reply_text }
  */
 
-import { Extractor } from "@backend/extractor/extractor";
 import { TelegramMessage, TelegramUpdate } from "@backend/types/telegram";
 import Elysia from "elysia";
 import { Telegraf } from "telegraf";
@@ -26,15 +25,6 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
     if (!message) {
       return;
     }
-    const extractor = new Extractor();
-    let output = "";
-    for await (const data of extractor.decrypt(message.text ?? "", [])) {
-      if (data.type == "token") {
-        output += data.data;
-      }
-    }
-
-    return output;
   },
   {
     body: z.object<TelegramUpdate>(),

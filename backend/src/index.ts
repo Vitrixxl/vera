@@ -3,8 +3,9 @@ import { auth } from "./lib/auth";
 import cors from "@elysiajs/cors";
 import { webAppRoutes } from "./routes/chat";
 import { surveyRoutes } from "./routes/survey";
+import { telegramRoutes } from "./routes/telegram";
 
-const app = new Elysia()
+const app = new Elysia({ prefix: "/api" })
   .use(
     cors({
       credentials: true,
@@ -14,6 +15,7 @@ const app = new Elysia()
   .mount(auth.handler)
   .use(webAppRoutes)
   .use(surveyRoutes)
+  .use(telegramRoutes)
   .listen(3000);
 
 export type Api = typeof app;
