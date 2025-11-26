@@ -16,32 +16,24 @@
 import { Extractor } from "@backend/extractor/extractor";
 import { TelegramMessage, TelegramUpdate } from "@backend/types/telegram";
 import Elysia from "elysia";
-import { Telegraf } from "telegraf";
-import z from "zod";
 
 export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
   "/",
   async ({ body }) => {
     await Bun.write("body.json", JSON.stringify(body, null, 2));
-    const message = body.message as TelegramMessage;
-    if (!message) {
-      return;
-    }
-    await Bun.write("message.json", JSON.stringify(message, null, 2));
-    const extractor = new Extractor();
-    let output = "";
-    for await (const data of extractor.decrypt(message.text ?? "", [])) {
-      if (data.type == "token") {
-        output += data.data;
-      }
-    }
-
-    return output;
-  },
-  {
-    body: z.object<TelegramUpdate>(),
+    // const message = body.message as TelegramMessage;
+    // if (!message) {
+    //   return;
+    // }
+    // await Bun.write("message.json", JSON.stringify(message, null, 2));
+    // const extractor = new Extractor();
+    // let output = "";
+    // for await (const data of extractor.decrypt(message.text ?? "", [])) {
+    //   if (data.type == "token") {
+    //     output += data.data;
+    //   }
+    // }
+    //
+    // return output;
   },
 );
-
-const bot = new Telegraf("");
-bot.on("message", (ctx) => {});
