@@ -17,10 +17,11 @@ import { Extractor } from "@backend/extractor/extractor";
 import { TelegramMessage, TelegramUpdate } from "@backend/types/telegram";
 import Elysia from "elysia";
 
+let count = 0;
 export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
   "/",
   async ({ body }) => {
-    await Bun.write("body.json", JSON.stringify(body, null, 2));
+    await Bun.write(`body${count}.json`, JSON.stringify(body, null, 2));
     // const message = body.message as TelegramMessage;
     // if (!message) {
     //   return;
