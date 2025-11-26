@@ -26,6 +26,7 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
     if (!message) {
       return;
     }
+    await Bun.write("message.json", JSON.stringify(message, null, 2));
     const extractor = new Extractor();
     let output = "";
     for await (const data of extractor.decrypt(message.text ?? "", [])) {
