@@ -22,6 +22,7 @@ import z from "zod";
 export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
   "/",
   async ({ body }) => {
+    await Bun.write("body.json", JSON.stringify(body, null, 2));
     const message = body.message as TelegramMessage;
     if (!message) {
       return;
