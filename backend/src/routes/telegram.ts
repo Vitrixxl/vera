@@ -72,14 +72,7 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
       }
     }
 
-    const splitedResponse = veraResponse.split("\n");
-    if (splitedResponse.length == 1) {
-      await sendTelegramMessage(message.chat.id, veraResponse);
-    }
-    await sendTelegramMessage(
-      message.chat.id,
-      splitedResponse.slice(1, splitedResponse.length).join("\n"),
-    );
+    await sendTelegramMessage(message.chat.id, veraResponse);
     for (const f of files) {
       await f.delete();
     }
