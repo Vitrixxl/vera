@@ -26,6 +26,24 @@ CREATE TABLE "session" (
 	CONSTRAINT "session_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
+CREATE TABLE "survey" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"q1_channels" text[] NOT NULL,
+	"q2_questions_count" varchar NOT NULL,
+	"q3_clarity" varchar NOT NULL,
+	"q4_reliability" varchar NOT NULL,
+	"q5_experience_rating" integer NOT NULL,
+	"q6_liked" text[] NOT NULL,
+	"q7_improvements" text[] NOT NULL,
+	"q8_reuse" varchar NOT NULL,
+	"q9_recommend" varchar NOT NULL,
+	"q10_behavior_change" varchar NOT NULL,
+	"q11_badge_feature" varchar NOT NULL,
+	"q12_discovery" varchar NOT NULL,
+	"q13_comment" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "user" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,

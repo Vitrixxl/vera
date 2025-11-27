@@ -1,5 +1,5 @@
 {
-  "id": "3a43210f-3ca4-46f3-9a87-e1b2164a209e",
+  "id": "1aa3ca40-95c0-4ebb-94c4-f4382728eb50",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -194,6 +194,111 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.survey": {
+      "name": "survey",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "q1_channels": {
+          "name": "q1_channels",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q2_questions_count": {
+          "name": "q2_questions_count",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q3_clarity": {
+          "name": "q3_clarity",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q4_reliability": {
+          "name": "q4_reliability",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q5_experience_rating": {
+          "name": "q5_experience_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q6_liked": {
+          "name": "q6_liked",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q7_improvements": {
+          "name": "q7_improvements",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q8_reuse": {
+          "name": "q8_reuse",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q9_recommend": {
+          "name": "q9_recommend",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q10_behavior_change": {
+          "name": "q10_behavior_change",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q11_badge_feature": {
+          "name": "q11_badge_feature",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q12_discovery": {
+          "name": "q12_discovery",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "q13_comment": {
+          "name": "q13_comment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

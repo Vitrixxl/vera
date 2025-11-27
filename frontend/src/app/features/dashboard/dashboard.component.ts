@@ -3,6 +3,92 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { api } from '../../../lib/api';
 
+// Labels for displaying survey values
+const LABELS: Record<string, Record<string, string>> = {
+  q1Channels: {
+    whatsapp: 'WhatsApp',
+    instagram: 'Instagram/TikTok',
+    phone: 'Téléphone',
+    website: 'Site web',
+  },
+  q2QuestionsCount: {
+    '1': '1 question',
+    '2-3': '2-3 questions',
+    '4-5': '4-5 questions',
+    '5+': '5+ questions',
+  },
+  q3Clarity: {
+    clear: 'Claire',
+    technical: 'Technique',
+    difficult: 'Difficile',
+    no_response: 'Pas de réponse',
+  },
+  q4Reliability: {
+    yes_totally: 'Oui, totalement',
+    yes_rather: 'Oui, plutôt',
+    not_really: 'Pas vraiment',
+    no: 'Non',
+    need_verify: 'Besoin vérifier',
+  },
+  q6Liked: {
+    speed: 'Rapidité',
+    sources: 'Sources',
+    free: 'Gratuit',
+    simple: 'Simple',
+    accessible: 'Accessible',
+    neutral: 'Neutre',
+  },
+  q7Improvements: {
+    faster: 'Plus rapide',
+    design: 'Design',
+    clarity: 'Clarté',
+    explanations: 'Explications',
+    followup: 'Suivi',
+    notifications: 'Notifications',
+    nothing: 'Rien',
+  },
+  q8Reuse: {
+    yes_always: 'Oui, toujours',
+    yes_sometimes: 'Oui, parfois',
+    maybe: 'Peut-être',
+    probably_not: 'Probablement pas',
+    certainly_not: 'Certainement pas',
+  },
+  q9Recommend: {
+    yes_certainly: 'Oui, certainement',
+    yes_probably: 'Oui, probablement',
+    maybe: 'Peut-être',
+    probably_not: 'Probablement pas',
+    certainly_not: 'Certainement pas',
+  },
+  q10BehaviorChange: {
+    yes_systematic: 'Oui, systématique',
+    more_careful: 'Plus attentif',
+    not_really: 'Pas vraiment',
+    too_early: 'Trop tôt',
+  },
+  q11BadgeFeature: {
+    love_it: "J'adore",
+    cool: 'Cool',
+    meh: 'Bof',
+    useless: 'Inutile',
+  },
+  q12Discovery: {
+    questionnaire: 'Questionnaire',
+    landing: 'Landing page',
+    instagram: 'Instagram',
+    friend: 'Ami',
+  },
+};
+
+interface SurveyStats {
+  total: number;
+  avgExperienceRating: number;
+  recommendRate: number;
+  reuseRate: number;
+  distributions: Record<string, Record<string, number>>;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -13,15 +99,13 @@ import { api } from '../../../lib/api';
       <header class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard VERA</h1>
             <div class="flex gap-3">
               <button
                 (click)="goToSurvey()"
-                class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                Go to Survey
-              </button>
-              <button class="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                Logout
+                class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Voir le Survey
               </button>
             </div>
           </div>
@@ -30,67 +114,238 @@ import { api } from '../../../lib/api';
 
       <!-- Main Content -->
       <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <!-- Stats Grid -->
+        <!-- Key Metrics -->
         @if (isLoading()) {
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            @for (i of [1, 2, 3]; track i) {
-              <div class="bg-white rounded-lg shadow p-6">
-                <div class="animate-pulse">
-                  <div class="flex items-center">
-                    <div class="flex-shrink-0 bg-gray-200 rounded-md p-3 w-12 h-12"></div>
-                    <div class="ml-5 flex-1">
-                      <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                      <div class="h-8 bg-gray-200 rounded w-16"></div>
-                    </div>
-                  </div>
-                </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="bg-white rounded-lg shadow p-6 animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                <div class="h-8 bg-gray-200 rounded w-16"></div>
               </div>
             }
           </div>
         } @else {
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Stat Card 1 -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Total Responses -->
             <div class="bg-white rounded-lg shadow p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                  <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                  <svg
+                    class="h-6 w-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    ></path>
                   </svg>
                 </div>
                 <div class="ml-5">
-                  <p class="text-sm font-medium text-gray-500">Total Surveys</p>
-                  <p class="text-2xl font-semibold text-gray-900">{{ totalSurveys() }}</p>
+                  <p class="text-sm font-medium text-gray-500">Total Réponses</p>
+                  <p class="text-2xl font-semibold text-gray-900">{{ stats()?.total || 0 }}</p>
                 </div>
               </div>
             </div>
 
-            <!-- Stat Card 2 -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <div class="flex items-center">
-                <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
-                  <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                  </svg>
-                </div>
-                <div class="ml-5">
-                  <p class="text-sm font-medium text-gray-500">Responses</p>
-                  <p class="text-2xl font-semibold text-gray-900">{{ totalSurveys() }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Stat Card 3 -->
+            <!-- Average Rating -->
             <div class="bg-white rounded-lg shadow p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                  <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                    ></path>
                   </svg>
                 </div>
                 <div class="ml-5">
-                  <p class="text-sm font-medium text-gray-500">Average Rating</p>
-                  <p class="text-2xl font-semibold text-gray-900">{{ avgRating() }}/10</p>
+                  <p class="text-sm font-medium text-gray-500">Note Moyenne</p>
+                  <p class="text-2xl font-semibold text-gray-900">
+                    {{ stats()?.avgExperienceRating || 0 }}/5
+                  </p>
                 </div>
+              </div>
+            </div>
+
+            <!-- Recommend Rate -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                  <svg
+                    class="h-6 w-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+                    ></path>
+                  </svg>
+                </div>
+                <div class="ml-5">
+                  <p class="text-sm font-medium text-gray-500">Recommandent</p>
+                  <p class="text-2xl font-semibold text-gray-900">
+                    {{ stats()?.recommendRate || 0 }}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reuse Rate -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                  <svg
+                    class="h-6 w-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    ></path>
+                  </svg>
+                </div>
+                <div class="ml-5">
+                  <p class="text-sm font-medium text-gray-500">Réutiliseront</p>
+                  <p class="text-2xl font-semibold text-gray-900">{{ stats()?.reuseRate || 0 }}%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Distribution Charts -->
+        @if (!isLoading() && stats()) {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Q5: Experience Rating Distribution -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Note d'expérience (Q5)</h3>
+              <div class="space-y-3">
+                @for (rating of [5, 4, 3, 2, 1]; track rating) {
+                  <div class="flex items-center gap-3">
+                    <span class="w-20 text-sm text-gray-600"
+                      >{{ rating }}
+                      {{ rating === 5 ? 'Excellent' : rating === 1 ? 'Décevant' : '' }}</span
+                    >
+                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        [class.bg-green-500]="rating >= 4"
+                        [class.bg-yellow-500]="rating === 3"
+                        [class.bg-red-500]="rating <= 2"
+                        [style.width.%]="getPercentage('q5ExperienceRating', rating.toString())"
+                      ></div>
+                    </div>
+                    <span class="w-12 text-sm text-gray-600 text-right">{{
+                      getCount('q5ExperienceRating', rating.toString())
+                    }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Q1: Channels -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Canaux utilisés (Q1)</h3>
+              <div class="space-y-3">
+                @for (item of getDistributionItems('q1Channels'); track item.key) {
+                  <div class="flex items-center gap-3">
+                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        class="h-full bg-indigo-500 rounded-full"
+                        [style.width.%]="item.percentage"
+                      ></div>
+                    </div>
+                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Q6: What they liked -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Ce qui a plu (Q6)</h3>
+              <div class="space-y-3">
+                @for (item of getDistributionItems('q6Liked'); track item.key) {
+                  <div class="flex items-center gap-3">
+                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        class="h-full bg-green-500 rounded-full"
+                        [style.width.%]="item.percentage"
+                      ></div>
+                    </div>
+                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Q7: Improvements -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">À améliorer (Q7)</h3>
+              <div class="space-y-3">
+                @for (item of getDistributionItems('q7Improvements'); track item.key) {
+                  <div class="flex items-center gap-3">
+                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        class="h-full bg-amber-500 rounded-full"
+                        [style.width.%]="item.percentage"
+                      ></div>
+                    </div>
+                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Q9: Recommend -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Recommandation (Q9)</h3>
+              <div class="space-y-3">
+                @for (item of getDistributionItems('q9Recommend'); track item.key) {
+                  <div class="flex items-center gap-3">
+                    <span class="w-32 text-sm text-gray-600 truncate">{{ item.label }}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        class="h-full bg-blue-500 rounded-full"
+                        [style.width.%]="item.percentage"
+                      ></div>
+                    </div>
+                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Q12: Discovery -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Découverte (Q12)</h3>
+              <div class="space-y-3">
+                @for (item of getDistributionItems('q12Discovery'); track item.key) {
+                  <div class="flex items-center gap-3">
+                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        class="h-full bg-purple-500 rounded-full"
+                        [style.width.%]="item.percentage"
+                      ></div>
+                    </div>
+                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -99,7 +354,7 @@ import { api } from '../../../lib/api';
         <!-- Survey List -->
         <div class="bg-white shadow rounded-lg">
           <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Recent Surveys</h2>
+            <h2 class="text-lg font-semibold text-gray-900">Réponses récentes</h2>
           </div>
 
           @if (isLoading()) {
@@ -119,8 +374,7 @@ import { api } from '../../../lib/api';
           } @else if (surveys().length === 0) {
             <div class="px-6 py-8">
               <div class="text-center text-gray-500">
-                <p>No surveys available</p>
-                <p class="text-sm mt-2">Survey data will appear here</p>
+                <p>Aucune réponse pour le moment</p>
               </div>
             </div>
           } @else {
@@ -128,122 +382,226 @@ import { api } from '../../../lib/api';
               @for (survey of surveys(); track survey.id) {
                 <div
                   (click)="openSurveyDialog(survey)"
-                  class="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                  class="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
                   <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center w-12 h-12 rounded-full flex-shrink-0"
-                             [class.bg-green-100]="survey.note >= 7"
-                             [class.bg-yellow-100]="survey.note >= 4 && survey.note < 7"
-                             [class.bg-red-100]="survey.note < 4">
-                          <span class="text-xl font-bold"
-                                [class.text-green-600]="survey.note >= 7"
-                                [class.text-yellow-600]="survey.note >= 4 && survey.note < 7"
-                                [class.text-red-600]="survey.note < 4">
-                            {{ survey.note }}
-                          </span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          @if (survey.commentary) {
-                            <p class="text-gray-900 truncate line-clamp-1">{{ survey.commentary }}</p>
-                          } @else {
-                            <p class="text-gray-400 italic">No comment</p>
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="flex items-center justify-center w-12 h-12 rounded-full flex-shrink-0"
+                        [class.bg-green-100]="survey.q5ExperienceRating >= 4"
+                        [class.bg-yellow-100]="survey.q5ExperienceRating === 3"
+                        [class.bg-red-100]="survey.q5ExperienceRating <= 2"
+                      >
+                        <span
+                          class="text-xl font-bold"
+                          [class.text-green-600]="survey.q5ExperienceRating >= 4"
+                          [class.text-yellow-600]="survey.q5ExperienceRating === 3"
+                          [class.text-red-600]="survey.q5ExperienceRating <= 2"
+                        >
+                          {{ survey.q5ExperienceRating }}
+                        </span>
+                      </div>
+                      <div>
+                        <div class="flex flex-wrap gap-1 mb-1">
+                          @for (channel of survey.q1Channels; track channel) {
+                            <span
+                              class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded"
+                              >{{ getLabel('q1Channels', channel) }}</span
+                            >
                           }
-                          <p class="text-sm text-gray-500">{{ formatDate(survey.createdAt) }}</p>
                         </div>
+                        <p class="text-sm text-gray-500">{{ formatDate(survey.createdAt) }}</p>
                       </div>
                     </div>
+                    <svg
+                      class="w-5 h-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      ></path>
+                    </svg>
                   </div>
                 </div>
               }
               @if (loadingMore()) {
                 <div class="px-6 py-4 text-center">
-                  <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                  <div
+                    class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"
+                  ></div>
                 </div>
               }
-              @if (hasMore() === false && surveys().length > 0) {
-                <div class="px-6 py-4 text-center text-sm text-gray-400">
-                  No more surveys
-                </div>
+              @if (!hasMore() && surveys().length > 0) {
+                <div class="px-6 py-4 text-center text-sm text-gray-400">Fin des réponses</div>
               }
             </div>
           }
         </div>
       </main>
 
-      <!-- Survey Dialog -->
+      <!-- Survey Detail Dialog -->
       @if (selectedSurvey()) {
         <div
-          class="fixed inset-0 flex items-center justify-center p-4 z-50"
+          class="fixed inset-0 flex items-center justify-center p-4 z-50 overflow-y-auto"
           style="background-color: rgba(0, 0, 0, 0.5)"
-          (click)="closeSurveyDialog()">
+          (click)="closeSurveyDialog()"
+        >
           <div
-            class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6"
-            (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-gray-900">Survey Details</h2>
+            class="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-gray-900">Détail de la réponse</h2>
               <button
                 (click)="closeSurveyDialog()"
-                class="text-gray-400 hover:text-gray-600 transition-colors">
+                class="text-gray-400 hover:text-gray-600 transition-colors"
+              >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
                 </svg>
               </button>
             </div>
 
-            <div class="space-y-4">
-              <!-- Rating -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center justify-center w-16 h-16 rounded-full"
-                       [class.bg-green-100]="selectedSurvey()!.note >= 7"
-                       [class.bg-yellow-100]="selectedSurvey()!.note >= 4 && selectedSurvey()!.note < 7"
-                       [class.bg-red-100]="selectedSurvey()!.note < 4">
-                    <span class="text-3xl font-bold"
-                          [class.text-green-600]="selectedSurvey()!.note >= 7"
-                          [class.text-yellow-600]="selectedSurvey()!.note >= 4 && selectedSurvey()!.note < 7"
-                          [class.text-red-600]="selectedSurvey()!.note < 4">
-                      {{ selectedSurvey()!.note }}
-                    </span>
-                  </div>
-                  <span class="text-gray-600">/ 10</span>
+            <div class="space-y-6">
+              <!-- Rating Display -->
+              <div
+                class="flex items-center gap-4 p-4 rounded-lg"
+                [class.bg-green-50]="selectedSurvey()!.q5ExperienceRating >= 4"
+                [class.bg-yellow-50]="selectedSurvey()!.q5ExperienceRating === 3"
+                [class.bg-red-50]="selectedSurvey()!.q5ExperienceRating <= 2"
+              >
+                <div
+                  class="text-4xl font-bold"
+                  [class.text-green-600]="selectedSurvey()!.q5ExperienceRating >= 4"
+                  [class.text-yellow-600]="selectedSurvey()!.q5ExperienceRating === 3"
+                  [class.text-red-600]="selectedSurvey()!.q5ExperienceRating <= 2"
+                >
+                  {{ selectedSurvey()!.q5ExperienceRating }}/5
+                </div>
+                <div class="text-sm text-gray-600">
+                  {{ formatFullDate(selectedSurvey()!.createdAt) }}
                 </div>
               </div>
 
-              <!-- Commentary -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Commentary</label>
-                @if (selectedSurvey()!.commentary) {
-                  <p class="text-gray-900 bg-gray-50 rounded-lg p-4 whitespace-pre-wrap">{{ selectedSurvey()!.commentary }}</p>
-                } @else {
-                  <p class="text-gray-400 italic bg-gray-50 rounded-lg p-4">No comment provided</p>
-                }
+              <!-- Questions Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q1. Canaux</p>
+                  <div class="flex flex-wrap gap-1">
+                    @for (v of selectedSurvey()!.q1Channels; track v) {
+                      <span class="text-sm bg-indigo-100 text-indigo-700 px-2 py-1 rounded">{{
+                        getLabel('q1Channels', v)
+                      }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q2. Nombre de questions</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q2QuestionsCount', selectedSurvey()!.q2QuestionsCount) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q3. Clarté</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q3Clarity', selectedSurvey()!.q3Clarity) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q4. Fiabilité</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q4Reliability', selectedSurvey()!.q4Reliability) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q6. Ce qui a plu</p>
+                  <div class="flex flex-wrap gap-1">
+                    @for (v of selectedSurvey()!.q6Liked; track v) {
+                      <span class="text-sm bg-green-100 text-green-700 px-2 py-1 rounded">{{
+                        getLabel('q6Liked', v)
+                      }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q7. À améliorer</p>
+                  <div class="flex flex-wrap gap-1">
+                    @for (v of selectedSurvey()!.q7Improvements; track v) {
+                      <span class="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded">{{
+                        getLabel('q7Improvements', v)
+                      }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q8. Réutilisation</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q8Reuse', selectedSurvey()!.q8Reuse) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q9. Recommandation</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q9Recommend', selectedSurvey()!.q9Recommend) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q10. Changement comportement</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q10BehaviorChange', selectedSurvey()!.q10BehaviorChange) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500 mb-1">Q11. Badge/Stats</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q11BadgeFeature', selectedSurvey()!.q11BadgeFeature) }}
+                  </p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg md:col-span-2">
+                  <p class="text-xs text-gray-500 mb-1">Q12. Découverte</p>
+                  <p class="text-sm font-medium">
+                    {{ getLabel('q12Discovery', selectedSurvey()!.q12Discovery) }}
+                  </p>
+                </div>
               </div>
 
-              <!-- Date -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Submitted</label>
-                <p class="text-gray-900">{{ formatFullDate(selectedSurvey()!.createdAt) }}</p>
-              </div>
+              <!-- Q13 Comment -->
+              @if (selectedSurvey()!.q13Comment) {
+                <div class="p-4 bg-blue-50 rounded-lg">
+                  <p class="text-xs text-blue-600 mb-2">Q13. Commentaire</p>
+                  <p class="text-gray-900 whitespace-pre-wrap">
+                    {{ selectedSurvey()!.q13Comment }}
+                  </p>
+                </div>
+              }
             </div>
 
             <div class="mt-6 flex justify-end">
               <button
                 (click)="closeSurveyDialog()"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                Close
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Fermer
               </button>
             </div>
           </div>
         </div>
       }
     </div>
-  `
+  `,
 })
 export class DashboardComponent implements OnInit {
-  totalSurveys = signal(0);
-  avgRating = signal(0);
+  stats = signal<SurveyStats | null>(null);
   surveys = signal<any[]>([]);
   isLoading = signal(true);
   loadingMore = signal(false);
@@ -255,12 +613,13 @@ export class DashboardComponent implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
-    this.loadStats();
+    this.loadData();
   }
 
   @HostListener('window:scroll')
   onWindowScroll() {
-    const pos = (document.documentElement.scrollTop || document.body.scrollTop) + window.innerHeight;
+    const pos =
+      (document.documentElement.scrollTop || document.body.scrollTop) + window.innerHeight;
     const max = document.documentElement.scrollHeight;
     const threshold = 200;
 
@@ -269,58 +628,41 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  async loadStats() {
+  async loadData() {
     this.isLoading.set(true);
 
     try {
-      const totalResponse = await api.survey.total.get();
-      if (totalResponse.data) {
-        this.totalSurveys.set(totalResponse.data);
+      // Load stats
+      const statsResponse = await api.survey.stats.get();
+      if (statsResponse.data) {
+        this.stats.set(statsResponse.data as SurveyStats);
       }
 
-      const avgResponse = await api.survey.avg.get();
-      if (avgResponse.data) {
-        this.avgRating.set(Number(avgResponse.data.toFixed(1)));
-      }
-
-      // Fetch recent surveys
+      // Load surveys
       await this.loadSurveys();
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('Error loading data:', error);
     } finally {
       this.isLoading.set(false);
     }
   }
 
   async loadSurveys() {
-    console.log('loadSurveys called');
     try {
-      console.log('Calling API with params:', {
-        limit: this.limit,
-        cursor: this.currentCursor
-      });
-
       const surveysResponse = await api.survey.surveys.get({
         query: {
           limit: this.limit,
-          cursor: this.currentCursor
-        }
+          cursor: this.currentCursor,
+        },
       });
-
-      console.log('Surveys response:', surveysResponse);
 
       if (surveysResponse.data) {
         const data = surveysResponse.data as any;
-        console.log('Surveys data:', data);
         this.surveys.set(data.surveys || []);
         this.hasMore.set(data.nextCursor !== null);
         if (data.nextCursor) {
           this.currentCursor = data.nextCursor;
         }
-      }
-
-      if (surveysResponse.error) {
-        console.error('Surveys error:', surveysResponse.error);
       }
     } catch (error) {
       console.error('Load surveys error:', error);
@@ -336,13 +678,13 @@ export class DashboardComponent implements OnInit {
       const surveysResponse = await api.survey.surveys.get({
         query: {
           limit: this.limit,
-          cursor: this.currentCursor
-        }
+          cursor: this.currentCursor,
+        },
       });
 
       if (surveysResponse.data) {
         const data = surveysResponse.data as any;
-        this.surveys.update(current => [...current, ...(data.surveys || [])]);
+        this.surveys.update((current) => [...current, ...(data.surveys || [])]);
         this.hasMore.set(data.nextCursor !== null);
         if (data.nextCursor) {
           this.currentCursor = data.nextCursor;
@@ -355,6 +697,41 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  getLabel(question: string, value: string): string {
+    return LABELS[question]?.[value] || value;
+  }
+
+  getPercentage(question: string, value: string): number {
+    const dist = this.stats()?.distributions[question];
+    if (!dist) return 0;
+    const total = Object.values(dist).reduce((sum, count) => sum + count, 0);
+    if (total === 0) return 0;
+    return ((dist[value] || 0) / total) * 100;
+  }
+
+  getCount(question: string, value: string): number {
+    return this.stats()?.distributions[question]?.[value] || 0;
+  }
+
+  getDistributionItems(
+    question: string,
+  ): { key: string; label: string; count: number; percentage: number }[] {
+    const dist = this.stats()?.distributions[question];
+    if (!dist) return [];
+
+    const total = Object.values(dist).reduce((sum, count) => sum + count, 0);
+    if (total === 0) return [];
+
+    return Object.entries(dist)
+      .map(([key, count]) => ({
+        key,
+        label: this.getLabel(question, key),
+        count,
+        percentage: (count / total) * 100,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   formatDate(date: string | Date): string {
     const d = new Date(date);
     const now = new Date();
@@ -363,15 +740,15 @@ export class DashboardComponent implements OnInit {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return "À l'instant";
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays < 7) return `Il y a ${diffDays}j`;
 
     return d.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
-      year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
     });
   }
 
@@ -383,7 +760,7 @@ export class DashboardComponent implements OnInit {
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
