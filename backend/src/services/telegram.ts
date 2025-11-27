@@ -49,7 +49,8 @@ export const downloadTelegramFile = async (fileId: string) => {
     `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.file_path}`,
   );
 
-  tempFile.write(fileRes);
-  console.log(`[Telegram] File downloaded to: ${tempFile.name}`);
+  const arrayBuffer = await fileRes.arrayBuffer();
+  await Bun.write(tempFile, arrayBuffer);
+  console.log(`[Telegram] File downloaded to: ${tempFile.name}, size: ${arrayBuffer.byteLength} bytes`);
   return tempFile;
 };
