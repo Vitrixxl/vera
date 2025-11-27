@@ -1,5 +1,6 @@
 import { db } from "@backend/lib/db";
 import { survey } from "@backend/lib/db/schema";
+import { tryCatchAsync } from "@backend/lib/utils";
 import { authMacro } from "@backend/macros/auth";
 import {
   getSurveyCount,
@@ -129,12 +130,14 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
   .post(
     "/",
     async ({ body }) => {
-      const result = await db
-        .insert(survey)
-        .values(body)
-        .returning({ id: survey.id });
-      console.log("Survey created:", result);
-      return { success: true, id: result[0].id };
+      const { data, error } = await tryCatchAsync(
+        db.insert(survey).values(body).returning({ id: survey.id }),
+      );
+      if (error) {
+        console.error(error);
+        throw new Error(error.message);
+      }
+      return { success: true, id: data[0].id };
     },
     {
       body: surveyBodySchema,
