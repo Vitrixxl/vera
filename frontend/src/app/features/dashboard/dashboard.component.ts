@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, HostListener } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { api } from '../../../lib/api';
@@ -600,7 +600,7 @@ interface SurveyStats {
     </div>
   `,
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   stats = signal<SurveyStats | null>(null);
   surveys = signal<any[]>([]);
   isLoading = signal(true);
@@ -610,10 +610,39 @@ export class DashboardComponent implements OnInit {
   limit = 10;
   selectedSurvey = signal<any>(null);
 
+  private wsConnection: any = null;
+
   constructor(private router: Router) {}
 
   ngOnInit() {
     this.loadData();
+    this.setupWebSocket();
+  }
+
+  ngOnDestroy() {
+    if (this.wsConnection) {
+      this.wsConnection.close();
+    }
+  }
+
+  private setupWebSocket() {
+    this.wsConnection = api.survey.ws.subscribe();
+
+    this.wsConnection.on('message', ({ data }: { data: { key: string; payload: any } }) => {
+      if (data.key === 'new-survey') {
+        const { newStats, newSurvey } = data.payload;
+
+        // Update stats
+        if (newStats) {
+          this.stats.set(newStats as SurveyStats);
+        }
+
+        // Add new survey to the top of the list
+        if (newSurvey) {
+          this.surveys.update(current => [{ ...newSurvey, createdAt: new Date() }, ...current]);
+        }
+      }
+    });
   }
 
   @HostListener('window:scroll')

@@ -7,8 +7,10 @@ import {
   getSurveys,
   getSurveyStats,
 } from "@backend/services/survey";
-import Elysia from "elysia";
+import Elysia, { type Context } from "elysia";
 import z from "zod";
+
+type WS = Parameters<NonNullable<Parameters<Elysia["ws"]>[1]["open"]>>[0];
 
 // Zod schemas for validation
 const q1ChannelSchema = z.enum(["whatsapp", "instagram", "phone", "website"]);
@@ -94,6 +96,15 @@ const surveyBodySchema = z.object({
   q13Comment: z.string().nullable().optional(),
 });
 
+export const wsSet = new Set<WS>();
+
+const sendWsData = (ws: WS, key: string, data: any) => {
+  ws.send({
+    key,
+    payload: data,
+  });
+};
+
 export const surveyRoutes = new Elysia({ prefix: "/survey" })
   .use(authMacro)
   .get(
@@ -137,9 +148,26 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
         console.error(error);
         throw new Error(error.message);
       }
+      const id = data[0].id;
+      const newStats = await getSurveyStats();
+      const newCount = await getSurveyCount();
+      const newSurvey = { id, ...body };
+      wsSet.forEach((ws) => {
+        if (ws.readyState != 1) return;
+        sendWsData(ws, "new-survey", { newStats, newCount, newSurvey });
+      });
       return { success: true, id: data[0].id };
     },
     {
       body: surveyBodySchema,
     },
-  );
+  )
+  .ws("/ws", {
+    open: (ws) => {
+      wsSet.add(ws);
+    },
+    close: (ws) => {
+      wsSet.delete(ws);
+    },
+    // auth: true,
+  });
