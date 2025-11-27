@@ -122,10 +122,6 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
     return recognizeResult.data.data.text;
   };
 
-  private downloadInstaVideo = (url: string) => {
-    igdl;
-  };
-
   private extractTextFromVideo = async (
     path: string,
   ): Promise<string | null> => {
