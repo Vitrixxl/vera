@@ -7,6 +7,7 @@ import {
   getSurveys,
   getSurveyStats,
 } from "@backend/services/survey";
+import { google } from "googleapis";
 import Elysia, { type Context } from "elysia";
 import z from "zod";
 
@@ -98,6 +99,22 @@ const surveyBodySchema = z.object({
 
 export const wsSet = new Set<WS>();
 
+const FORMS_SCOPE = [
+  "https://www.googleapis.com/auth/forms.responses.readonly",
+];
+
+export async function getFormsClient() {
+  const auth = new google.auth.GoogleAuth({
+    keyFile: "./vera-accout-key.json",
+    scopes: FORMS_SCOPE,
+  });
+
+  const { forms } = google.forms({ version: "v1", auth });
+
+  return forms;
+}
+
+const forms = await getFormsClient();
 const sendWsData = (ws: WS, key: string, data: any) => {
   ws.send({
     key,
@@ -107,6 +124,13 @@ const sendWsData = (ws: WS, key: string, data: any) => {
 
 export const surveyRoutes = new Elysia({ prefix: "/survey" })
   .use(authMacro)
+  .get("/google-surveys", async () => {
+    const res = await forms.responses.list({
+      formId: "1wQYE3OrsIdWMApe-BcmvhYOjsEFbjqfgcR2Vs6P9G34",
+      pageSize: 50,
+    });
+    return res.data.responses;
+  })
   .get(
     "/surveys",
     async ({ query: { limit, cursor } }) => {

@@ -67,9 +67,20 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
     let veraResponse = "";
     for await (const data of extractor.decrypt(prompt, files)) {
       if (data.type === "step") continue;
-      if (data.type === "token") {
-        veraResponse += data.data;
+
+      const token = data.data;
+      const parts = token.split("\n");
+      if (parts.length == 1) {
+        veraResponse += token;
+        continue;
       }
+      const partsLenght = parts.length;
+      for (let i = 0; i < partsLenght - 1; i++) {
+        veraResponse += parts[i];
+        await sendTelegramMessage(message.chat.id, veraResponse);
+        veraResponse = "";
+      }
+      veraResponse += parts[partsLenght - 1];
     }
 
     await sendTelegramMessage(message.chat.id, veraResponse);

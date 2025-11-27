@@ -7,6 +7,10 @@ import OpenAI from "openai";
 import Tesseract from "tesseract.js";
 import { tryCatchAsync } from "../lib/utils";
 
+const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+const INSTAGRAM_REGEX = /https?:\/\/(www\.)?instagram\.com/i;
+const TIKTOK_REGEX = /https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com)/i;
+
 export class Extractor {
   private openaiClient: OpenAI;
   private geminiClient: GoogleGenAI;
@@ -19,6 +23,76 @@ export class Extractor {
       apiKey: Bun.env["GEMINI_API_KEY"],
     });
   }
+
+  /**
+   * Extract URLs from text and categorize them
+   */
+  extractUrls(text: string): {
+    instagramUrls: string[];
+    tiktokUrls: string[];
+    otherUrls: string[];
+  } {
+    const allUrls = text.match(URL_REGEX) || [];
+    const instagramUrls: string[] = [];
+    const tiktokUrls: string[] = [];
+    const otherUrls: string[] = [];
+
+    for (const url of allUrls) {
+      if (INSTAGRAM_REGEX.test(url)) {
+        instagramUrls.push(url);
+      } else if (TIKTOK_REGEX.test(url)) {
+        tiktokUrls.push(url);
+      } else {
+        otherUrls.push(url);
+      }
+    }
+
+    return { instagramUrls, tiktokUrls, otherUrls };
+  }
+
+  /**
+   * Use Gemini with Google Search to analyze URLs and extract relevant information
+   */
+  private summarizeUrlsWithGemini = async (
+    urls: string[],
+    userPrompt: string,
+  ): Promise<string | null> => {
+    if (urls.length === 0) return null;
+
+    const urlList = urls.map((url, i) => `${i + 1}. ${url}`).join("\n");
+
+    const prompt = userPrompt
+      ? `L'utilisateur pose la question suivante: "${userPrompt}"
+
+Voici des liens fournis par l'utilisateur:
+${urlList}
+
+Utilise la recherche Google pour accéder au contenu de ces liens et extraire les informations pertinentes. Résume les informations trouvées en rapport avec la question de l'utilisateur. Si tu ne peux pas accéder à un lien, indique-le.`
+      : `Voici des liens fournis par l'utilisateur:
+${urlList}
+
+Utilise la recherche Google pour accéder au contenu de ces liens et extraire les informations principales. Résume les affirmations ou claims présents dans ces contenus.`;
+
+    const result = await tryCatchAsync(
+      this.geminiClient.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: createUserContent([prompt]),
+        config: {
+          tools: [{ googleSearch: {} }],
+        },
+      }),
+    );
+
+    if (result.error) {
+      console.error(
+        "[Extractor] Error summarizing URLs with Gemini:",
+        result.error,
+      );
+      return null;
+    }
+
+    return result.data.text || null;
+  };
 
   private extractTextFromImage = async (
     path: string,
@@ -46,6 +120,10 @@ export class Extractor {
     }
 
     return recognizeResult.data.data.text;
+  };
+
+  private downloadInstaVideo = (url: string) => {
+    igdl;
   };
 
   private extractTextFromVideo = async (
@@ -208,16 +286,38 @@ export class Extractor {
 
   /**
    * Full pipeline for the decryption
-   * First : - Extract text from img / vid
+   * First : - Check for social media URLs and return early if found
+   * Then : - Extract text from img / vid
+   * Then : - Extract and analyze URLs (excluding Instagram/TikTok)
    * Then : - Ask the ai client to summarize the outputs
-   * Finaly : - Call the vera api to fact-check user input and return the vera output
+   * Finally : - Call the vera api to fact-check user input and return the vera output
    */
   async *decrypt(
     prompt: string,
     files: Bun.BunFile[],
-  ): AsyncGenerator<{ data: string; type: "step" | "token" }> {
+  ): AsyncGenerator<{
+    data: string;
+    type: "step" | "token";
+  }> {
     const filesTextContent: string[] = [];
     let text!: string | null;
+
+    // Extract URLs from prompt
+    const { instagramUrls, tiktokUrls, otherUrls } = this.extractUrls(prompt);
+
+    // If social media URLs are found, return early with a message
+    if (instagramUrls.length > 0 || tiktokUrls.length > 0) {
+      const platforms: string[] = [];
+      if (instagramUrls.length > 0) platforms.push("Instagram");
+      if (tiktokUrls.length > 0) platforms.push("TikTok");
+
+      const message = `Je ne peux malheureusement pas accéder au contenu des liens ${platforms.join(" et ")}. Pour que je puisse vous aider, vous pouvez :\n\n- **M'envoyer directement la vidéo ou l'image** en pièce jointe\n- **Me décrire le contenu** que vous souhaitez vérifier (texte, affirmations, etc.)\n\nJe serai alors en mesure d'analyser l'information et de vous fournir une vérification.`;
+
+      yield { type: "token", data: message };
+      return;
+    }
+
+    // Process files
     if (files.length > 0) {
       yield { type: "step", data: "files" };
       for (const f of files) {
@@ -230,6 +330,16 @@ export class Extractor {
         filesTextContent.push(text);
       }
     }
+
+    // Process other URLs with Gemini + Google Search
+    if (otherUrls.length > 0) {
+      yield { type: "step", data: "urls" };
+      const urlContent = await this.summarizeUrlsWithGemini(otherUrls, prompt);
+      if (urlContent) {
+        filesTextContent.push(`[Contenu des liens]\n${urlContent}`);
+      }
+    }
+
     yield { type: "step", data: "summarizing" };
     const summary = await this.summarizeTextContent(filesTextContent, prompt);
     for await (const token of this.askVera(summary)) {

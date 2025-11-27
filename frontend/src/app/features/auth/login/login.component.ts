@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -78,9 +79,9 @@ export class LoginComponent {
   isLoading = signal(false);
   errorMessage = signal('');
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private authService: AuthService) {}
 
-  handleLogin() {
+  async handleLogin() {
     this.errorMessage.set('');
 
     if (!this.email || !this.password) {
@@ -90,13 +91,14 @@ export class LoginComponent {
 
     this.isLoading.set(true);
 
-    // TODO: Implement Better Auth login
-    console.log('Login attempt:', this.email);
+    const result = await this.authService.login(this.email, this.password);
 
-    // Simulate login for now
-    setTimeout(() => {
-      this.isLoading.set(false);
-      // this.router.navigate(['/dashboard']);
-    }, 1000);
+    this.isLoading.set(false);
+
+    if (result.success) {
+      this.router.navigate(['/dashboard']);
+    } else {
+      this.errorMessage.set(result.error || 'Login failed');
+    }
   }
 }

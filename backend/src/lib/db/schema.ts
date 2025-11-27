@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
@@ -22,7 +22,7 @@ export const user = pgTable("user", {
 });
 
 export const session = pgTable("session", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey(),
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -32,16 +32,16 @@ export const session = pgTable("session", {
     .notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  userId: uuid("user_id")
+  userId: varchar("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
 });
 
 export const account = pgTable("account", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
-  userId: uuid("user_id")
+  userId: varchar("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   accessToken: text("access_token"),
@@ -63,7 +63,7 @@ export const account = pgTable("account", {
 });
 
 export const verification = pgTable("verification", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
@@ -78,12 +78,44 @@ export const verification = pgTable("verification", {
 type Q1Channel = "whatsapp" | "instagram" | "phone" | "website";
 type Q2QuestionsCount = "1" | "2-3" | "4-5" | "5+";
 type Q3Clarity = "clear" | "technical" | "difficult" | "no_response";
-type Q4Reliability = "yes_totally" | "yes_rather" | "not_really" | "no" | "need_verify";
-type Q6Liked = "speed" | "sources" | "free" | "simple" | "accessible" | "neutral";
-type Q7Improvement = "faster" | "design" | "clarity" | "explanations" | "followup" | "notifications" | "nothing";
-type Q8Reuse = "yes_always" | "yes_sometimes" | "maybe" | "probably_not" | "certainly_not";
-type Q9Recommend = "yes_certainly" | "yes_probably" | "maybe" | "probably_not" | "certainly_not";
-type Q10BehaviorChange = "yes_systematic" | "more_careful" | "not_really" | "too_early";
+type Q4Reliability =
+  | "yes_totally"
+  | "yes_rather"
+  | "not_really"
+  | "no"
+  | "need_verify";
+type Q6Liked =
+  | "speed"
+  | "sources"
+  | "free"
+  | "simple"
+  | "accessible"
+  | "neutral";
+type Q7Improvement =
+  | "faster"
+  | "design"
+  | "clarity"
+  | "explanations"
+  | "followup"
+  | "notifications"
+  | "nothing";
+type Q8Reuse =
+  | "yes_always"
+  | "yes_sometimes"
+  | "maybe"
+  | "probably_not"
+  | "certainly_not";
+type Q9Recommend =
+  | "yes_certainly"
+  | "yes_probably"
+  | "maybe"
+  | "probably_not"
+  | "certainly_not";
+type Q10BehaviorChange =
+  | "yes_systematic"
+  | "more_careful"
+  | "not_really"
+  | "too_early";
 type Q11BadgeFeature = "love_it" | "cool" | "meh" | "useless";
 type Q12Discovery = "questionnaire" | "landing" | "instagram" | "friend";
 
@@ -94,7 +126,9 @@ export const survey = pgTable("survey", {
   q1Channels: text("q1_channels").array().$type<Q1Channel[]>().notNull(),
 
   // Q2: Nombre de questions posées
-  q2QuestionsCount: varchar("q2_questions_count").$type<Q2QuestionsCount>().notNull(),
+  q2QuestionsCount: varchar("q2_questions_count")
+    .$type<Q2QuestionsCount>()
+    .notNull(),
 
   // Q3: Clarté de la réponse
   q3Clarity: varchar("q3_clarity").$type<Q3Clarity>().notNull(),
@@ -103,13 +137,18 @@ export const survey = pgTable("survey", {
   q4Reliability: varchar("q4_reliability").$type<Q4Reliability>().notNull(),
 
   // Q5: Note expérience 1-5
-  q5ExperienceRating: integer("q5_experience_rating").$type<1 | 2 | 3 | 4 | 5>().notNull(),
+  q5ExperienceRating: integer("q5_experience_rating")
+    .$type<1 | 2 | 3 | 4 | 5>()
+    .notNull(),
 
   // Q6: Ce qui a plu (multi-select)
   q6Liked: text("q6_liked").array().$type<Q6Liked[]>().notNull(),
 
   // Q7: À améliorer (multi-select)
-  q7Improvements: text("q7_improvements").array().$type<Q7Improvement[]>().notNull(),
+  q7Improvements: text("q7_improvements")
+    .array()
+    .$type<Q7Improvement[]>()
+    .notNull(),
 
   // Q8: Réutilisation
   q8Reuse: varchar("q8_reuse").$type<Q8Reuse>().notNull(),
@@ -118,10 +157,14 @@ export const survey = pgTable("survey", {
   q9Recommend: varchar("q9_recommend").$type<Q9Recommend>().notNull(),
 
   // Q10: Changement de comportement
-  q10BehaviorChange: varchar("q10_behavior_change").$type<Q10BehaviorChange>().notNull(),
+  q10BehaviorChange: varchar("q10_behavior_change")
+    .$type<Q10BehaviorChange>()
+    .notNull(),
 
   // Q11: Feature badge/stats
-  q11BadgeFeature: varchar("q11_badge_feature").$type<Q11BadgeFeature>().notNull(),
+  q11BadgeFeature: varchar("q11_badge_feature")
+    .$type<Q11BadgeFeature>()
+    .notNull(),
 
   // Q12: Découverte VERA
   q12Discovery: varchar("q12_discovery").$type<Q12Discovery>().notNull(),

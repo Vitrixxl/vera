@@ -1,43 +1,74 @@
 import { Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private isAuthenticatedSignal = signal(false);
+  private isInitializedSignal = signal(false);
+
   isAuthenticated = this.isAuthenticatedSignal.asReadonly();
+  isInitialized = this.isInitializedSignal.asReadonly();
+
+  private baseUrl = environment.apiUrl.replace('/api', '');
+  private initPromise: Promise<void> | null = null;
 
   constructor(private router: Router) {
-    // TODO: Check Better Auth session on init
-    this.checkAuthStatus();
+    this.initPromise = this.checkAuthStatus();
   }
 
-  private checkAuthStatus() {
-    // TODO: Implement Better Auth session check
-    // For now, check localStorage or session
-    const token = localStorage.getItem('auth_token');
-    this.isAuthenticatedSignal.set(!!token);
+  waitForInit(): Promise<void> {
+    return this.initPromise || Promise.resolve();
   }
 
-  async login(email: string, password: string): Promise<boolean> {
+  private async checkAuthStatus() {
     try {
-      // TODO: Implement Better Auth login
-      console.log('Login with Better Auth:', email);
-
-      // Simulate login for now
-      localStorage.setItem('auth_token', 'dummy_token');
-      this.isAuthenticatedSignal.set(true);
-      return true;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      const response = await fetch(`${this.baseUrl}/api/auth/get-session`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      this.isAuthenticatedSignal.set(!!data?.session);
+    } catch {
+      this.isAuthenticatedSignal.set(false);
+    } finally {
+      this.isInitializedSignal.set(true);
     }
   }
 
-  logout() {
-    // TODO: Implement Better Auth logout
-    localStorage.removeItem('auth_token');
+  async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/sign-in/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.message || 'Invalid credentials' };
+      }
+
+      this.isAuthenticatedSignal.set(true);
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  async logout() {
+    try {
+      await fetch(`${this.baseUrl}/api/auth/sign-out`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Ignore errors
+    }
     this.isAuthenticatedSignal.set(false);
     this.router.navigate(['/login']);
   }
