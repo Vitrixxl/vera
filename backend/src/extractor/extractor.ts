@@ -62,7 +62,7 @@ export class Extractor {
     const uploadResult = await tryCatchAsync(
       this.geminiClient.files.upload({
         file: path,
-        config: { mimeType: file.type || "video/mp4" },
+        config: { mimeType: file.type },
       }),
     );
 
@@ -75,7 +75,41 @@ export class Extractor {
     }
 
     const uploadedFile = uploadResult.data;
-    console.log("[Extractor] Video uploaded, generating transcription...");
+    console.log("[Extractor] Video uploaded, waiting for processing...");
+
+    // Wait for file to be ACTIVE before using it
+    let fileState = uploadedFile.state;
+    let retries = 0;
+    const maxRetries = 30;
+
+    while (fileState !== "ACTIVE" && retries < maxRetries) {
+      console.log(
+        `[Extractor] Waiting for file to be ready... (state: ${fileState}, attempt ${retries + 1}/${maxRetries})`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const fileInfo = await tryCatchAsync(
+        this.geminiClient.files.get({ name: uploadedFile.name! }),
+      );
+
+      if (fileInfo.error) {
+        console.error("[Extractor] Error checking file state:", fileInfo.error);
+        break;
+      }
+
+      fileState = fileInfo.data.state;
+      retries++;
+    }
+
+    if (fileState !== "ACTIVE") {
+      console.error(
+        "[Extractor] File failed to become ACTIVE after waiting, state:",
+        fileState,
+      );
+      return null;
+    }
+
+    console.log("[Extractor] File is ACTIVE, generating transcription...");
 
     const transcriptionResult = await tryCatchAsync(
       this.geminiClient.models.generateContent({
