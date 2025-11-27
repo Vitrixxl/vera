@@ -1,13 +1,10 @@
 {
   "name": "vera",
   "module": "index.ts",
-  "type": "module",
+  "overrides": {
+    "picomatch": "2.3.1"
+  },
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend",
-    "shared"
-  ],
   "scripts": {
     "dev:front": "bun --cwd frontend start --host",
     "dev:back": "bun --cwd backend dev --host",
@@ -19,7 +16,10 @@
     "db:push": "bunx drizzle-kit push",
     "db:studio": "bunx drizzle-kit studio"
   },
-  "overrides": {
-    "picomatch": "2.3.1"
-  }
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ]
 }

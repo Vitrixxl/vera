@@ -1,13 +1,22 @@
+import {
+  GoogleGenAI,
+  createUserContent,
+  createPartFromUri,
+} from "@google/genai";
 import OpenAI from "openai";
 import Tesseract from "tesseract.js";
 import { tryCatchAsync } from "../lib/utils";
 
 export class Extractor {
   private openaiClient: OpenAI;
+  private geminiClient: GoogleGenAI;
 
   constructor() {
     this.openaiClient = new OpenAI({
       apiKey: Bun.env["OPENAI_API_KEY"],
+    });
+    this.geminiClient = new GoogleGenAI({
+      apiKey: Bun.env["GEMINI_API_KEY"],
     });
   }
 
@@ -44,49 +53,52 @@ export class Extractor {
   ): Promise<string | null> => {
     const file = Bun.file(path);
     if (!(await file.exists())) {
+      console.log("[Extractor] Video file does not exist:", path);
       return null;
     }
 
-    const audioPath = `${path}.audio.mp3`;
+    console.log("[Extractor] Uploading video to Gemini:", path);
 
-    const ffmpegResult = await tryCatchAsync(
-      Bun.$`ffmpeg -i ${path} -vn -acodec libmp3lame -q:a 2 ${audioPath} -y`,
-    );
-
-    if (ffmpegResult.error) {
-      console.error("Error extracting audio from video:", ffmpegResult.error);
-      await tryCatchAsync(Bun.$`rm -f ${audioPath}`);
-      return null;
-    }
-
-    const audioFile = Bun.file(audioPath);
-    if (!(await audioFile.exists())) {
-      console.error("Failed to extract audio from video");
-      await tryCatchAsync(Bun.$`rm -f ${audioPath}`);
-      return null;
-    }
-
-    const transcriptionResult = await tryCatchAsync(
-      this.openaiClient.audio.transcriptions.create({
-        file: audioFile,
-        model: "whisper-1",
-        language: "fr", // Adjust language as needed
-        response_format: "text",
+    const uploadResult = await tryCatchAsync(
+      this.geminiClient.files.upload({
+        file: path,
+        config: { mimeType: file.type || "video/mp4" },
       }),
     );
 
-    // Clean up temporary audio file
-    await tryCatchAsync(Bun.$`rm ${audioPath}`);
+    if (uploadResult.error) {
+      console.error(
+        "[Extractor] Error uploading video to Gemini:",
+        uploadResult.error,
+      );
+      return null;
+    }
+
+    const uploadedFile = uploadResult.data;
+    console.log("[Extractor] Video uploaded, generating transcription...");
+
+    const transcriptionResult = await tryCatchAsync(
+      this.geminiClient.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: createUserContent([
+          createPartFromUri(uploadedFile.uri!, uploadedFile.mimeType!),
+          "Transcribe ALL spoken words from this video. Output ONLY the transcription, nothing else. If there is text visible in the video, include it as well.",
+        ]),
+      }),
+    );
 
     if (transcriptionResult.error) {
       console.error(
-        "Error transcribing audio with Whisper:",
+        "[Extractor] Error transcribing with Gemini:",
         transcriptionResult.error,
       );
       return null;
     }
 
-    return transcriptionResult.data;
+    const text = transcriptionResult.data.text;
+    console.log("[Extractor] Transcription completed, transcription:", text);
+
+    return text || null;
   };
 
   /**
@@ -103,8 +115,8 @@ export class Extractor {
     const hasUserPrompt = userPrompt && userPrompt.trim().length > 0;
 
     const systemPrompt = hasUserPrompt
-      ? `You are a helpful assistant that reformulates user questions for fact-checking. Your task is to take the user's question and the extracted content, then create a clear, specific question that can be fact-checked. Include ALL relevant details from the extracted content (names, dates, numbers, statistics, quotes, specific claims) in your reformulated question. Output ONLY the reformulated question, nothing else.`
-      : `You are a helpful assistant that creates fact-checking questions from content. Your task is to analyze the extracted content, identify the main claim or affirmation, and formulate it as a clear question to be fact-checked. Include ALL relevant details (names, dates, numbers, statistics, quotes, specific claims). Output ONLY the question in the format: "Est-il vrai que [claim]?" or "Is it true that [claim]?" depending on the language of the content.`;
+      ? `You are a helpful assistant that reformulates user questions for fact-checking. Your task is to take the user's question and the extracted content, then create a clear, specific question that can be fact-checked. Include ALL relevant details from the extracted content (names, dates, numbers, statistics, quotes, specific claims) in your reformulated question. IMPORTANT: You MUST formulate the question in the SAME LANGUAGE as the user's question. Output ONLY the reformulated question, nothing else.`
+      : `You are a helpful assistant that creates fact-checking questions from content. Your task is to analyze the extracted content, identify the main claim or affirmation, and formulate it as a clear question to be fact-checked. Include ALL relevant details (names, dates, numbers, statistics, quotes, specific claims). IMPORTANT: You MUST formulate the question in the SAME LANGUAGE as the extracted content. Output ONLY the question in the format: "Est-il vrai que [claim]?" (French) or "Is it true that [claim]?" (English) or equivalent in the content's language.`;
 
     const userMessage = hasUserPrompt
       ? `User question: "${userPrompt}"\n\nExtracted content:\n${combinedText}\n\nReformulate the user's question incorporating the relevant facts from the extracted content.`
