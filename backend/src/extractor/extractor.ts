@@ -183,6 +183,7 @@ export class Extractor {
         filesTextContent.push(text);
       }
     }
+    console.log(JSON.stringify(filesTextContent, null, 2));
     yield { type: "step", data: "summarizing" };
     const summary = await this.summarizeTextContent(filesTextContent, prompt);
     for await (const token of this.askVera(summary)) {
