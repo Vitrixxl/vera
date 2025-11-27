@@ -38,7 +38,9 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
 
     let files: Bun.BunFile[] = [];
     if (message.photo) {
-      console.log(`[Telegram] Downloading photo (${message.photo.length} sizes available)`);
+      console.log(
+        `[Telegram] Downloading photo (${message.photo.length} sizes available)`,
+      );
       const file = await downloadTelegramFile(
         message.photo[message.photo.length - 1].file_id,
       );
@@ -59,26 +61,26 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
     if (message.text) {
       prompt = message.text;
     }
-    console.log(`[Telegram] Prompt: "${prompt || "(empty)"}"`);
-    console.log(`[Telegram] Files count: ${files.length}`);
 
     const extractor = new Extractor();
-    console.log("[Telegram] Starting extraction pipeline...");
 
     let veraResponse = "";
     for await (const data of extractor.decrypt(prompt, files)) {
-      if (data.type === "step") {
-        console.log(`[Telegram] Pipeline step: ${data.data}`);
-      }
+      if (data.type === "step") continue;
       if (data.type === "token") {
         veraResponse += data.data;
       }
     }
 
-    console.log(`[Telegram] Vera response length: ${veraResponse.length} chars`);
-    console.log("[Telegram] Sending response to user...");
-
-    await sendTelegramMessage(message.chat.id, veraResponse);
-    console.log("[Telegram] Response sent successfully");
+    await sendTelegramMessage(
+      message.chat.id,
+      veraResponse
+        .split("\n")
+        .slice(1, veraResponse.split("\n").length)
+        .join("\n"),
+    );
+    for (const f of files) {
+      await f.delete();
+    }
   },
 );
