@@ -2,6 +2,7 @@ import { authMacro } from "@backend/macros/auth";
 import {
   getHotQuestions,
   getSimilarQuestions,
+  updateHotQuestion,
 } from "@backend/services/questions";
 import Elysia from "elysia";
 import z from "zod";
@@ -20,6 +21,10 @@ export const questionsRoutes = new Elysia({ prefix: "/questions" })
       auth: true,
     },
   )
-  .post("/hot", async () => {
+  .get("/hot", async () => {
     return getHotQuestions();
-  });
+  })
+  .post("/hot/generate", async () => {
+    await updateHotQuestion();
+    return { success: true };
+  }, { auth: true });

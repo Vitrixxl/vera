@@ -35,7 +35,7 @@ export function tryCatch<T extends () => unknown, E = Error>(
 export const generateEmbedding = async (value: string) => {
   const { data } = await openai.embeddings.create({
     input: value,
-    model: "text-embedding-ada-002",
+    model: "text-embedding-3-small",
   });
   return data[0].embedding;
 };

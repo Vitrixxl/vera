@@ -247,11 +247,8 @@ interface SurveyStats {
                       [class.text-gray-600]="i >= 3"
                     >{{ i + 1 }}</span>
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm text-gray-800 truncate">{{ q.label }}</p>
+                      <p class="text-sm text-gray-800 truncate">{{ q.question }}</p>
                     </div>
-                    <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {{ q.relatedQuestions }}
-                    </span>
                   </div>
                 }
               </div>
@@ -1002,7 +999,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   async loadHotQuestions() {
     this.loadingHotQuestions.set(true);
     try {
-      const response = await api.questions.hot.post();
+      const response = await api.questions.hot.get();
       if (response.data) {
         this.hotQuestions.set(response.data as any[]);
       }
