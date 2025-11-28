@@ -1,6 +1,7 @@
 import { tryCatchAsync } from "@backend/lib/utils";
 import { authMacro } from "@backend/macros/auth";
 import {
+  exportToCSV,
   getSimilarSurveys,
   getSurveyCount,
   getSurveys,
@@ -196,6 +197,9 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
       }),
     },
   )
+  .get("/csv", async () => {
+    return Bun.file(await exportToCSV()).stream();
+  })
   .ws("/ws", {
     open: (ws) => {
       wsSet.add(ws);

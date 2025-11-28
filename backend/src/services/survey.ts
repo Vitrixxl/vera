@@ -149,3 +149,17 @@ function countArrayValues(arr: string[]): Record<string, number> {
     {} as Record<string, number>,
   );
 }
+
+export const exportToCSV = async (): Promise<string> => {
+  const isInDocker = Bun.env["DOCKER"];
+  const dbUrl = isInDocker
+    ? Bun.env["DATABASE_URL"]
+    : Bun.env["DATABASE_URL_LOCAL"];
+
+  const fileName = `surveys_export_${Date.now()}.csv`;
+  const filePath = `/tmp/${fileName}`;
+
+  await Bun.$`psql ${dbUrl} -c "\\copy (SELECT id, q1_channels, q2_questions_count, q3_clarity, q4_reliability, q5_experience_rating, q6_liked, q7_improvements, q8_reuse, q9_recommend, q10_behavior_change, q11_badge_feature, q12_discovery, q13_comment, created_at FROM survey) TO '${filePath}' WITH CSV HEADER"`;
+
+  return filePath;
+};
