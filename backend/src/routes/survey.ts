@@ -198,7 +198,13 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
     },
   )
   .get("/csv", async () => {
-    return Bun.file(await exportToCSV()).stream();
+    const filePath = await exportToCSV();
+    return new Response(Bun.file(filePath).stream(), {
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="surveys_export.csv"`,
+      },
+    });
   })
   .ws("/ws", {
     open: (ws) => {
