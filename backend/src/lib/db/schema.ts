@@ -6,6 +6,7 @@ import {
   timestamp,
   varchar,
   integer,
+  vector,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -73,6 +74,15 @@ export const verification = pgTable("verification", {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+export const question = pgTable("question", {
+  id: varchar("id").primaryKey(),
+  question: text().notNull(),
+  embedding: vector({ dimensions: 1536 }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export type Question = typeof question.$inferSelect;
 
 // Types for survey questions
 type Q1Channel = "whatsapp" | "instagram" | "phone" | "website";
@@ -172,5 +182,8 @@ export const survey = pgTable("survey", {
   // Q13: Commentaire libre (facultatif)
   q13Comment: text("q13_comment"),
 
+  commentEmbedding: vector("comment_embedding", { dimensions: 1536 }),
+
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
+export type Survey = typeof survey.$inferSelect;

@@ -1,6 +1,38 @@
 import { db } from "@backend/lib/db";
-import { survey } from "@backend/lib/db/schema";
-import { avg, count, desc, sql } from "drizzle-orm";
+import { Survey, survey } from "@backend/lib/db/schema";
+import { generateEmbedding } from "@backend/lib/utils";
+import {
+  cosineDistance,
+  count,
+  desc,
+  getTableColumns,
+  sql,
+  gt,
+} from "drizzle-orm";
+
+export const insertSurvey = async (surveyData: Survey) => {
+  let embedding: number[] | null = null;
+  if (surveyData.q13Comment) {
+    embedding = await generateEmbedding(surveyData.q13Comment);
+  }
+  return await db
+    .insert(survey)
+    .values({ ...surveyData, commentEmbedding: embedding })
+    .returning({ id: survey.id });
+};
+
+export const getSimilarSurveys = async (query: string): Promise<Survey[]> => {
+  const embedding = await generateEmbedding(query);
+  const similarity = sql<number>`1 - (${cosineDistance(survey.commentEmbedding, embedding)})`;
+
+  const surveys = db
+    .select({ ...getTableColumns(survey), similarity })
+    .from(survey)
+    .where(gt(similarity, 0.5))
+    .orderBy((t) => t.similarity)
+    .limit(10);
+  return surveys;
+};
 
 export const getSurveys = async (limit: number, cursor: number) => {
   return await db.query.survey.findMany({
@@ -49,7 +81,8 @@ export const getSurveyStats = async () => {
 
   // Calculate recommend rate (Q9: yes_certainly + yes_probably)
   const recommendCount = surveys.filter(
-    (s) => s.q9Recommend === "yes_certainly" || s.q9Recommend === "yes_probably",
+    (s) =>
+      s.q9Recommend === "yes_certainly" || s.q9Recommend === "yes_probably",
   ).length;
   const recommendRate = (recommendCount / total) * 100;
 
@@ -69,7 +102,9 @@ export const getSurveyStats = async () => {
       surveys.map((s) => s.q5ExperienceRating.toString()),
     ),
     q6Liked: countArrayValues(surveys.map((s) => s.q6Liked).flat()),
-    q7Improvements: countArrayValues(surveys.map((s) => s.q7Improvements).flat()),
+    q7Improvements: countArrayValues(
+      surveys.map((s) => s.q7Improvements).flat(),
+    ),
     q8Reuse: countValues(surveys.map((s) => s.q8Reuse)),
     q9Recommend: countValues(surveys.map((s) => s.q9Recommend)),
     q10BehaviorChange: countValues(surveys.map((s) => s.q10BehaviorChange)),

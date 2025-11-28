@@ -3,12 +3,13 @@ import { survey } from "@backend/lib/db/schema";
 import { tryCatchAsync } from "@backend/lib/utils";
 import { authMacro } from "@backend/macros/auth";
 import {
+  getSimilarSurveys,
   getSurveyCount,
   getSurveys,
   getSurveyStats,
 } from "@backend/services/survey";
 import { google } from "googleapis";
-import Elysia, { type Context } from "elysia";
+import Elysia from "elysia";
 import z from "zod";
 
 type WS = Parameters<NonNullable<Parameters<Elysia["ws"]>[1]["open"]>>[0];
@@ -129,6 +130,7 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
       formId: "1wQYE3OrsIdWMApe-BcmvhYOjsEFbjqfgcR2Vs6P9G34",
       pageSize: 50,
     });
+
     return res.data.responses;
   })
   .get(
@@ -184,6 +186,17 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
     },
     {
       body: surveyBodySchema,
+    },
+  )
+  .get(
+    "/searchEmbedding",
+    async ({ query: { q } }) => {
+      return await getSimilarSurveys(q);
+    },
+    {
+      query: z.object({
+        q: z.string(),
+      }),
     },
   )
   .ws("/ws", {

@@ -1,3 +1,5 @@
+import { openai } from "./openai";
+
 type Success<T> = {
   data: T;
   error: null;
@@ -29,3 +31,12 @@ export function tryCatch<T extends () => unknown, E = Error>(
     return { data: null, error: error as E };
   }
 }
+
+export const generateEmbedding = async (value: string) => {
+  const { data } = await openai.embeddings.create({
+    input: value,
+    model: "text-embedding-ada-002",
+    dimensions: 1536,
+  });
+  return data[0].embedding;
+};
