@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: vera-postgres-dev
     restart: unless-stopped
     ports:
@@ -17,25 +17,26 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    image: oven/bun:latest
-    container_name: vera-backend-dev
-    restart: unless-stopped
-    working_dir: /app
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./backend:/app
-      - backend_node_modules_dev:/app/node_modules
-    command: sh -c "bun install && bun run src/index.ts"
-    env_file:
-      - ./backend/.env
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      postgres:
-        condition: service_healthy
+  # backend:
+  #   image: oven/bun:latest
+  #   container_name: vera-backend-dev
+  #   restart: unless-stopped
+  #   working_dir: /app
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./backend:/app
+  #     - backend_node_modules_dev:/app/node_modules
+  #   command: sh -c "bun install && bun run src/index.ts"
+  #   env_file:
+  #     - ./backend/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DOCKER=true
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
 
 volumes:
   postgres_data_dev:
-  backend_node_modules_dev:
+  # backend_node_modules_dev:

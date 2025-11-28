@@ -4,6 +4,7 @@ import cors from "@elysiajs/cors";
 import { webAppRoutes } from "./routes/chat";
 import { surveyRoutes } from "./routes/survey";
 import { telegramRoutes } from "./routes/telegram";
+import { questionsRoutes } from "./routes/quetions";
 
 const app = new Elysia({ prefix: "/api" })
   .use(
@@ -16,6 +17,7 @@ const app = new Elysia({ prefix: "/api" })
   .use(webAppRoutes)
   .use(surveyRoutes)
   .use(telegramRoutes)
+  .use(questionsRoutes)
   .listen(3000);
 
 export type Api = typeof app;

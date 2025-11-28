@@ -36,7 +36,6 @@ export const generateEmbedding = async (value: string) => {
   const { data } = await openai.embeddings.create({
     input: value,
     model: "text-embedding-ada-002",
-    dimensions: 1536,
   });
   return data[0].embedding;
 };

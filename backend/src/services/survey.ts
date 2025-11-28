@@ -1,5 +1,5 @@
 import { db } from "@backend/lib/db";
-import { Survey, survey } from "@backend/lib/db/schema";
+import { InsertSurvey, Survey, survey } from "@backend/lib/db/schema";
 import { generateEmbedding } from "@backend/lib/utils";
 import {
   cosineDistance,
@@ -10,7 +10,9 @@ import {
   gt,
 } from "drizzle-orm";
 
-export const insertSurvey = async (surveyData: Survey) => {
+export const insertSurvey = async (
+  surveyData: Omit<InsertSurvey, "commentEmbedding" | "id">,
+) => {
   let embedding: number[] | null = null;
   if (surveyData.q13Comment) {
     embedding = await generateEmbedding(surveyData.q13Comment);
@@ -25,10 +27,12 @@ export const getSimilarSurveys = async (query: string): Promise<Survey[]> => {
   const embedding = await generateEmbedding(query);
   const similarity = sql<number>`1 - (${cosineDistance(survey.commentEmbedding, embedding)})`;
 
+  const { commentEmbedding: _, ...rest } = survey;
   const surveys = db
-    .select({ ...getTableColumns(survey), similarity })
+
+    .select({ ...getTableColumns(rest), similarity })
     .from(survey)
-    .where(gt(similarity, 0.5))
+    .where(gt(similarity, 0.8))
     .orderBy((t) => t.similarity)
     .limit(10);
   return surveys;
@@ -36,6 +40,9 @@ export const getSimilarSurveys = async (query: string): Promise<Survey[]> => {
 
 export const getSurveys = async (limit: number, cursor: number) => {
   return await db.query.survey.findMany({
+    columns: {
+      commentEmbedding: false,
+    },
     limit,
     offset: cursor,
     orderBy: desc(survey.createdAt),

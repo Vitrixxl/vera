@@ -76,7 +76,7 @@ export const verification = pgTable("verification", {
 });
 
 export const question = pgTable("question", {
-  id: varchar("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   question: text().notNull(),
   embedding: vector({ dimensions: 1536 }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
@@ -84,6 +84,13 @@ export const question = pgTable("question", {
 
 export type Question = typeof question.$inferSelect;
 
+export const hotQuestion = pgTable("hot_questions", {
+  id: uuid().primaryKey().defaultRandom(),
+  label: varchar().notNull(),
+  relatedQuestions: integer().notNull(),
+});
+
+export type HotQuestion = typeof hotQuestion.$inferSelect;
 // Types for survey questions
 type Q1Channel = "whatsapp" | "instagram" | "phone" | "website";
 type Q2QuestionsCount = "1" | "2-3" | "4-5" | "5+";
@@ -187,3 +194,4 @@ export const survey = pgTable("survey", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 export type Survey = typeof survey.$inferSelect;
+export type InsertSurvey = typeof survey.$inferInsert;

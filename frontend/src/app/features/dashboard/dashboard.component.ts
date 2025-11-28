@@ -1,5 +1,6 @@
 import { Component, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { api } from '../../../lib/api';
 
@@ -92,7 +93,7 @@ interface SurveyStats {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
@@ -114,6 +115,152 @@ interface SurveyStats {
 
       <!-- Main Content -->
       <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <!-- Search Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Survey Search -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Rechercher des surveys</h3>
+            <div class="relative">
+              <input
+                type="text"
+                [(ngModel)]="surveySearchQuery"
+                (keyup.enter)="searchSurveys()"
+                placeholder="Ex: utilisateurs satisfaits..."
+                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                (click)="searchSurveys()"
+                [disabled]="searchingSurveys()"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600"
+              >
+                @if (searchingSurveys()) {
+                  <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                } @else {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (surveySearchResults().length > 0) {
+              <div class="mt-4 max-h-64 overflow-y-auto space-y-2">
+                @for (result of surveySearchResults(); track result.id) {
+                  <div
+                    (click)="openSurveyDialog(result)"
+                    class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-sm font-bold px-2 py-1 rounded"
+                        [class.bg-green-100]="result.q5ExperienceRating >= 4"
+                        [class.text-green-700]="result.q5ExperienceRating >= 4"
+                        [class.bg-yellow-100]="result.q5ExperienceRating === 3"
+                        [class.text-yellow-700]="result.q5ExperienceRating === 3"
+                        [class.bg-red-100]="result.q5ExperienceRating <= 2"
+                        [class.text-red-700]="result.q5ExperienceRating <= 2"
+                      >{{ result.q5ExperienceRating }}/5</span>
+                      <span class="text-xs text-gray-500">{{ formatDate(result.createdAt) }}</span>
+                    </div>
+                    @if (result.q13Comment) {
+                      <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ result.q13Comment }}</p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+            @if (surveySearchQuery && surveySearchResults().length === 0 && !searchingSurveys()) {
+              <p class="mt-4 text-sm text-gray-500 text-center">Aucun résultat</p>
+            }
+          </div>
+
+          <!-- Questions Search -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Rechercher des questions</h3>
+            <div class="relative">
+              <input
+                type="text"
+                [(ngModel)]="questionSearchQuery"
+                (keyup.enter)="searchQuestions()"
+                placeholder="Ex: délai de livraison..."
+                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                (click)="searchQuestions()"
+                [disabled]="searchingQuestions()"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600"
+              >
+                @if (searchingQuestions()) {
+                  <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                } @else {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (questionSearchResults().length > 0) {
+              <div class="mt-4 max-h-64 overflow-y-auto space-y-2">
+                @for (result of questionSearchResults(); track result.id) {
+                  <div class="p-3 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-800">{{ result.question }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ formatDate(result.createdAt) }}</p>
+                  </div>
+                }
+              </div>
+            }
+            @if (questionSearchQuery && questionSearchResults().length === 0 && !searchingQuestions()) {
+              <p class="mt-4 text-sm text-gray-500 text-center">Aucun résultat</p>
+            }
+          </div>
+
+          <!-- Hot Questions -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900">Questions tendances</h3>
+              <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            @if (loadingHotQuestions()) {
+              <div class="space-y-3">
+                @for (i of [1, 2, 3, 4, 5]; track i) {
+                  <div class="animate-pulse">
+                    <div class="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
+                }
+              </div>
+            } @else if (hotQuestions().length > 0) {
+              <div class="space-y-3">
+                @for (q of hotQuestions(); track q.id; let i = $index) {
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full"
+                      [class.bg-orange-100]="i < 3"
+                      [class.text-orange-700]="i < 3"
+                      [class.bg-gray-100]="i >= 3"
+                      [class.text-gray-600]="i >= 3"
+                    >{{ i + 1 }}</span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm text-gray-800 truncate">{{ q.label }}</p>
+                    </div>
+                    <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {{ q.relatedQuestions }}
+                    </span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="text-sm text-gray-500 text-center">Aucune question tendance</p>
+            }
+          </div>
+        </div>
+
         <!-- Key Metrics -->
         @if (isLoading()) {
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -610,6 +757,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   limit = 10;
   selectedSurvey = signal<any>(null);
 
+  // Search & Hot Questions
+  surveySearchQuery = '';
+  questionSearchQuery = '';
+  surveySearchResults = signal<any[]>([]);
+  questionSearchResults = signal<any[]>([]);
+  hotQuestions = signal<any[]>([]);
+  searchingSurveys = signal(false);
+  searchingQuestions = signal(false);
+  loadingHotQuestions = signal(false);
+
   private wsConnection: any = null;
 
   constructor(private router: Router) {}
@@ -617,6 +774,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadData();
     this.setupWebSocket();
+    this.loadHotQuestions();
   }
 
   ngOnDestroy() {
@@ -803,5 +961,55 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   goToSurvey() {
     this.router.navigate(['/survey']);
+  }
+
+  async searchSurveys() {
+    if (!this.surveySearchQuery.trim()) return;
+
+    this.searchingSurveys.set(true);
+    try {
+      const response = await api.survey.searchEmbedding.get({
+        query: { q: this.surveySearchQuery },
+      });
+      if (response.data) {
+        this.surveySearchResults.set(response.data as any[]);
+      }
+    } catch (error) {
+      console.error('Error searching surveys:', error);
+    } finally {
+      this.searchingSurveys.set(false);
+    }
+  }
+
+  async searchQuestions() {
+    if (!this.questionSearchQuery.trim()) return;
+
+    this.searchingQuestions.set(true);
+    try {
+      const response = await api.questions['search-embegging'].get({
+        query: { q: this.questionSearchQuery },
+      });
+      if (response.data) {
+        this.questionSearchResults.set(response.data as any[]);
+      }
+    } catch (error) {
+      console.error('Error searching questions:', error);
+    } finally {
+      this.searchingQuestions.set(false);
+    }
+  }
+
+  async loadHotQuestions() {
+    this.loadingHotQuestions.set(true);
+    try {
+      const response = await api.questions.hot.post();
+      if (response.data) {
+        this.hotQuestions.set(response.data as any[]);
+      }
+    } catch (error) {
+      console.error('Error loading hot questions:', error);
+    } finally {
+      this.loadingHotQuestions.set(false);
+    }
   }
 }
