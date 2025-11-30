@@ -247,7 +247,16 @@ export class ChatComponent {
     'video/webm',
   ];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router) {
+    const navigation = this.router.getCurrentNavigation();
+    const state = navigation?.extras.state as { initialMessage?: string };
+
+    if (state?.initialMessage) {
+      this.inputText = state.initialMessage;
+
+      setTimeout(() => this.handleSubmit(), 0);
+    }
+  }
 
   private generateMessageId(): string {
     return `msg-${Date.now()}-${this.messageIdCounter++}`;
