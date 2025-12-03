@@ -1,4 +1,4 @@
-import { tryCatchAsync } from "@backend/lib/utils";
+import { getCountryFromIP, tryCatchAsync } from "@backend/lib/utils";
 import { authMacro } from "@backend/macros/auth";
 import {
   exportToCSV,
@@ -166,8 +166,13 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
   )
   .post(
     "/",
-    async ({ body }) => {
-      const { data, error } = await tryCatchAsync(insertSurvey(body));
+    async ({ body, request }) => {
+      const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+                 request.headers.get("x-real-ip") ||
+                 "";
+      const country = await getCountryFromIP(ip);
+
+      const { data, error } = await tryCatchAsync(insertSurvey({ ...body, country }));
       if (error) {
         console.error(error);
         throw new Error(error.message);
@@ -175,7 +180,7 @@ export const surveyRoutes = new Elysia({ prefix: "/survey" })
       const id = data[0].id;
       const newStats = await getSurveyStats();
       const newCount = await getSurveyCount();
-      const newSurvey = { id, ...body };
+      const newSurvey = { id, ...body, country };
       wsSet.forEach((ws) => {
         if (ws.readyState != 1) return;
         sendWsData(ws, "new-survey", { newStats, newCount, newSurvey });

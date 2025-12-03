@@ -39,3 +39,15 @@ export const generateEmbedding = async (value: string) => {
   });
   return data[0].embedding;
 };
+
+export const getCountryFromIP = async (ip: string): Promise<string | null> => {
+  if (!ip || ip === "127.0.0.1" || ip === "::1") return null;
+
+  try {
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode`);
+    const data = await response.json();
+    return data.countryCode || null;
+  } catch {
+    return null;
+  }
+};

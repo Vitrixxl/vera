@@ -78,6 +78,7 @@ export const getSurveyStats = async () => {
         q10BehaviorChange: {},
         q11BadgeFeature: {},
         q12Discovery: {},
+        country: {},
       },
     };
   }
@@ -117,6 +118,7 @@ export const getSurveyStats = async () => {
     q10BehaviorChange: countValues(surveys.map((s) => s.q10BehaviorChange)),
     q11BadgeFeature: countValues(surveys.map((s) => s.q11BadgeFeature)),
     q12Discovery: countValues(surveys.map((s) => s.q12Discovery)),
+    country: countValues(surveys.map((s) => s.country || "Unknown")),
   };
 
   return {

@@ -1,8 +1,11 @@
-import { Component, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, HostListener, effect, ElementRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { api } from '../../../lib/api';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 // Labels for displaying survey values
 const LABELS: Record<string, Record<string, string>> = {
@@ -387,127 +390,47 @@ interface SurveyStats {
 
         <!-- Distribution Charts -->
         @if (!isLoading() && stats()) {
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <!-- Q5: Experience Rating Distribution -->
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Note d'expérience (Q5)</h3>
-              <div class="space-y-3">
-                @for (rating of [5, 4, 3, 2, 1]; track rating) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-20 text-sm text-gray-600"
-                      >{{ rating }}
-                      {{ rating === 5 ? 'Excellent' : rating === 1 ? 'Décevant' : '' }}</span
-                    >
-                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        class="h-full rounded-full transition-all duration-500"
-                        [class.bg-green-500]="rating >= 4"
-                        [class.bg-yellow-500]="rating === 3"
-                        [class.bg-red-500]="rating <= 2"
-                        [style.width.%]="getPercentage('q5ExperienceRating', rating.toString())"
-                      ></div>
-                    </div>
-                    <span class="w-12 text-sm text-gray-600 text-right">{{
-                      getCount('q5ExperienceRating', rating.toString())
-                    }}</span>
-                  </div>
-                }
-              </div>
+              <canvas #ratingChart></canvas>
             </div>
 
             <!-- Q1: Channels -->
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Canaux utilisés (Q1)</h3>
-              <div class="space-y-3">
-                @for (item of getDistributionItems('q1Channels'); track item.key) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        class="h-full bg-indigo-500 rounded-full"
-                        [style.width.%]="item.percentage"
-                      ></div>
-                    </div>
-                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
-                  </div>
-                }
-              </div>
+              <canvas #channelsChart></canvas>
             </div>
 
             <!-- Q6: What they liked -->
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Ce qui a plu (Q6)</h3>
-              <div class="space-y-3">
-                @for (item of getDistributionItems('q6Liked'); track item.key) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        class="h-full bg-green-500 rounded-full"
-                        [style.width.%]="item.percentage"
-                      ></div>
-                    </div>
-                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
-                  </div>
-                }
-              </div>
+              <canvas #likedChart></canvas>
             </div>
 
             <!-- Q7: Improvements -->
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">À améliorer (Q7)</h3>
-              <div class="space-y-3">
-                @for (item of getDistributionItems('q7Improvements'); track item.key) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        class="h-full bg-amber-500 rounded-full"
-                        [style.width.%]="item.percentage"
-                      ></div>
-                    </div>
-                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
-                  </div>
-                }
-              </div>
+              <canvas #improvementsChart></canvas>
             </div>
 
             <!-- Q9: Recommend -->
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Recommandation (Q9)</h3>
-              <div class="space-y-3">
-                @for (item of getDistributionItems('q9Recommend'); track item.key) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-32 text-sm text-gray-600 truncate">{{ item.label }}</span>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        class="h-full bg-blue-500 rounded-full"
-                        [style.width.%]="item.percentage"
-                      ></div>
-                    </div>
-                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
-                  </div>
-                }
-              </div>
+              <canvas #recommendChart></canvas>
             </div>
 
             <!-- Q12: Discovery -->
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Découverte (Q12)</h3>
-              <div class="space-y-3">
-                @for (item of getDistributionItems('q12Discovery'); track item.key) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-28 text-sm text-gray-600 truncate">{{ item.label }}</span>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        class="h-full bg-purple-500 rounded-full"
-                        [style.width.%]="item.percentage"
-                      ></div>
-                    </div>
-                    <span class="w-12 text-sm text-gray-600 text-right">{{ item.count }}</span>
-                  </div>
-                }
-              </div>
+              <canvas #discoveryChart></canvas>
+            </div>
+
+            <!-- Country -->
+            <div class="bg-white rounded-lg shadow p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Pays</h3>
+              <canvas #countryChart></canvas>
             </div>
           </div>
         }
@@ -782,9 +705,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loadingHotQuestions = signal(false);
   downloadingCSV = signal(false);
 
+  // Chart refs
+  ratingChartRef = viewChild<ElementRef<HTMLCanvasElement>>('ratingChart');
+  channelsChartRef = viewChild<ElementRef<HTMLCanvasElement>>('channelsChart');
+  likedChartRef = viewChild<ElementRef<HTMLCanvasElement>>('likedChart');
+  improvementsChartRef = viewChild<ElementRef<HTMLCanvasElement>>('improvementsChart');
+  recommendChartRef = viewChild<ElementRef<HTMLCanvasElement>>('recommendChart');
+  discoveryChartRef = viewChild<ElementRef<HTMLCanvasElement>>('discoveryChart');
+  countryChartRef = viewChild<ElementRef<HTMLCanvasElement>>('countryChart');
+
+  private charts: Chart[] = [];
   private wsConnection: any = null;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router) {
+    effect(() => {
+      const statsData = this.stats();
+      if (statsData && !this.isLoading()) {
+        setTimeout(() => this.initCharts(), 0);
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadData();
@@ -795,6 +735,160 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.wsConnection) {
       this.wsConnection.close();
+    }
+    this.charts.forEach(chart => chart.destroy());
+  }
+
+  private initCharts() {
+    this.charts.forEach(chart => chart.destroy());
+    this.charts = [];
+
+    const statsData = this.stats();
+    if (!statsData) return;
+
+    // Rating Chart (Bar horizontal)
+    const ratingCanvas = this.ratingChartRef()?.nativeElement;
+    if (ratingCanvas) {
+      const ratingData = [1, 2, 3, 4, 5].map(r => this.getCount('q5ExperienceRating', r.toString()));
+      this.charts.push(new Chart(ratingCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['1 - Décevant', '2', '3', '4', '5 - Excellent'],
+          datasets: [{
+            data: ratingData,
+            backgroundColor: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'],
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      }));
+    }
+
+    // Channels Chart (Doughnut)
+    const channelsCanvas = this.channelsChartRef()?.nativeElement;
+    if (channelsCanvas) {
+      const items = this.getDistributionItems('q1Channels');
+      this.charts.push(new Chart(channelsCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      }));
+    }
+
+    // Liked Chart (Polar Area)
+    const likedCanvas = this.likedChartRef()?.nativeElement;
+    if (likedCanvas) {
+      const items = this.getDistributionItems('q6Liked');
+      this.charts.push(new Chart(likedCanvas, {
+        type: 'polarArea',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: ['#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6'].map(c => c + 'cc'),
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      }));
+    }
+
+    // Improvements Chart (Bar)
+    const improvementsCanvas = this.improvementsChartRef()?.nativeElement;
+    if (improvementsCanvas) {
+      const items = this.getDistributionItems('q7Improvements');
+      this.charts.push(new Chart(improvementsCanvas, {
+        type: 'bar',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: '#f59e0b',
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      }));
+    }
+
+    // Recommend Chart (Pie)
+    const recommendCanvas = this.recommendChartRef()?.nativeElement;
+    if (recommendCanvas) {
+      const items = this.getDistributionItems('q9Recommend');
+      this.charts.push(new Chart(recommendCanvas, {
+        type: 'pie',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      }));
+    }
+
+    // Discovery Chart (Doughnut)
+    const discoveryCanvas = this.discoveryChartRef()?.nativeElement;
+    if (discoveryCanvas) {
+      const items = this.getDistributionItems('q12Discovery');
+      this.charts.push(new Chart(discoveryCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: ['#a855f7', '#8b5cf6', '#6366f1', '#4f46e5'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      }));
+    }
+
+    // Country Chart (Doughnut)
+    const countryCanvas = this.countryChartRef()?.nativeElement;
+    if (countryCanvas) {
+      const items = this.getDistributionItems('country');
+      this.charts.push(new Chart(countryCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      }));
     }
   }
 

@@ -81,6 +81,7 @@ export const question = pgTable("question", {
   embedding: vector({ dimensions: 1536 }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   hot: boolean().notNull().default(false),
+  country: varchar("country", { length: 2 }),
 });
 
 export type Question = typeof question.$inferSelect;
@@ -184,6 +185,8 @@ export const survey = pgTable("survey", {
   q13Comment: text("q13_comment"),
 
   commentEmbedding: vector("comment_embedding", { dimensions: 1536 }),
+
+  country: varchar("country", { length: 2 }),
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });

@@ -6,10 +6,12 @@ import {
 import OpenAI from "openai";
 import Tesseract from "tesseract.js";
 import { tryCatchAsync } from "../lib/utils";
+import { fetchTranscript } from "youtube-transcript-plus";
 
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
 const INSTAGRAM_REGEX = /https?:\/\/(www\.)?instagram\.com/i;
 const TIKTOK_REGEX = /https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com)/i;
+const YOUTUBE_REGEX = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)/i;
 
 export class Extractor {
   private openaiClient: OpenAI;
@@ -30,11 +32,13 @@ export class Extractor {
   extractUrls(text: string): {
     instagramUrls: string[];
     tiktokUrls: string[];
+    youtubeUrls: string[];
     otherUrls: string[];
   } {
     const allUrls = text.match(URL_REGEX) || [];
     const instagramUrls: string[] = [];
     const tiktokUrls: string[] = [];
+    const youtubeUrls: string[] = [];
     const otherUrls: string[] = [];
 
     for (const url of allUrls) {
@@ -42,12 +46,29 @@ export class Extractor {
         instagramUrls.push(url);
       } else if (TIKTOK_REGEX.test(url)) {
         tiktokUrls.push(url);
+      } else if (YOUTUBE_REGEX.test(url)) {
+        youtubeUrls.push(url);
       } else {
         otherUrls.push(url);
       }
     }
 
-    return { instagramUrls, tiktokUrls, otherUrls };
+    return { instagramUrls, tiktokUrls, youtubeUrls, otherUrls };
+  }
+
+  /**
+   * Extract video ID from YouTube URL
+   */
+  private extractYoutubeVideoId(url: string): string | null {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
+      /youtube\.com\/shorts\/([^&\s?]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
   }
 
   /**
@@ -299,7 +320,8 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
     let text!: string | null;
 
     // Extract URLs from prompt
-    const { instagramUrls, tiktokUrls, otherUrls } = this.extractUrls(prompt);
+    const { instagramUrls, tiktokUrls, youtubeUrls, otherUrls } =
+      this.extractUrls(prompt);
 
     // If social media URLs are found, return early with a message
     if (instagramUrls.length > 0 || tiktokUrls.length > 0) {
@@ -311,6 +333,33 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
 
       yield { type: "token", data: message };
       return;
+    }
+
+    // Process YouTube URLs
+    if (youtubeUrls.length > 0) {
+      yield { type: "step", data: "youtube" };
+      for (const url of youtubeUrls) {
+        const videoId = this.extractYoutubeVideoId(url);
+        if (!videoId) continue;
+
+        const transcriptResult = await tryCatchAsync(fetchTranscript(videoId));
+        if (
+          transcriptResult.error ||
+          !transcriptResult.data ||
+          transcriptResult.data.length === 0
+        ) {
+          yield {
+            type: "token",
+            data: "Impossible d'extraire le contenu de cette vidéo.",
+          };
+          return;
+        }
+
+        const transcription = transcriptResult.data
+          .map((t) => t.text)
+          .join(" ");
+        filesTextContent.push(`[Contenu YouTube]\n${transcription}`);
+      }
     }
 
     // Process files
