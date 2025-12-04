@@ -1,25 +1,14 @@
-<!-- 
-  MODIFICATION PRINCIPALE : 
-  L'image de fond est appliquée ici, sur le conteneur racine.
-  Ainsi, elle couvre toute la page (derrière le header, le main et le footer).
--->
 <div class="flex flex-col h-screen font-sans text-[#000000] bg-cover bg-center"
      style="background-image: url('/images/background.jpg'); background-color: #F5ECDE;">
       
-  <!-- HEADER -->
-  <!-- Ajout de 'bg-transparent' (ou bg-white/30 backdrop-blur-md pour un effet verre) -->
   <header class="flex-none px-6 py-4 border-b border-black flex justify-between items-center bg-transparent z-10">
     <img src="/images/vera-icon.png" alt="Vera Logo" class="h-8 w-auto">
   </header>
 
-  <!-- MAIN CHAT AREA -->
   <main class="flex-1 overflow-y-auto p-4 relative flex flex-col items-center">
     
-    <!-- On a supprimé l'ancienne div absolute ici car le background est maintenant sur le parent -->
-
     <div class="w-full max-w-3xl space-y-6 pb-4">
       
-      <!-- EMPTY STATE -->
       @if (messages().length === 0) {
         <div class="flex flex-col items-center justify-center h-64 text-center opacity-40">
           <svg width="43" height="43" viewBox="0 0 43 43" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -66,15 +55,24 @@
       }
       
       @if (isLoading() && messages()[messages().length - 1]?.role === 'user') {
-         <div class="flex justify-start w-full gap-3">
-            <div class="w-10 h-10 rounded-full bg-black animate-pulse"></div>
+         <div class="flex justify-start w-full gap-3 animate-in fade-in slide-in-from-bottom-2">
+            <div class="relative mt-2">
+               <div class="w-10 h-10 rounded-full overflow-hidden bg-black border border-gray-200">
+                  <img src="/images/vera-chat.png" alt="Vera" class="w-full h-full object-cover">
+               </div>
+               
+               <div class="absolute -top-3 -right-3 flex items-center space-x-1 bg-black px-2 py-1.5 rounded-full shadow-md z-10 border border-black">
+                  <div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></div>
+               </div>
+            </div>
          </div>
       }
     </div>
   </main>
 
   <!-- FOOTER -->
-  <!-- Ajout de 'bg-transparent' ici aussi -->
   <footer class="flex-none bg-transparent p-4 pb-6">
     <div class="max-w-3xl mx-auto w-full">
       
