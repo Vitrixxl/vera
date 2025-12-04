@@ -238,8 +238,7 @@ export class ChatComponent {
     }
   }
 
-  // TODO: Remove this method later
-  goToDashboard() {
-    this.router.navigate(['/dashboard']);
-  }
+  goToSurvey() {
+  this.router.navigate(['/survey']);
+}
 }

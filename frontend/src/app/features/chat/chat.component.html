@@ -42,7 +42,7 @@
         @if (message.role === 'assistant') {
           <div class="flex justify-start w-full gap-3 animate-in fade-in slide-in-from-bottom-2">
             <div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-black mt-1 border border-gray-200">
-              <img src="https://ui-avatars.com/api/?name=Vera&background=000&color=fff" alt="Vera" class="w-full h-full object-cover">
+              <img src="/images/vera-chat.png" alt="Vera" class="w-full h-full object-cover">
             </div>
             <div class="flex flex-col max-w-[85%]">
               <div class="bg-white px-5 py-4 rounded-2xl rounded-tl-none border border-black shadow-sm">
@@ -135,7 +135,7 @@
       </div>
       <div class="text-center mt-4">
           <p class="text-xs text-gray-500">
-            Pour soutenir Vera, répond à ce <a href="#" class="underline hover:text-black">sondage</a>
+            Pour soutenir Vera, répond à ce <a href="#" (click)="$event.preventDefault(); goToSurvey()" class="underline hover:text-black">sondage</a>
           </p>
       </div>
     </div>
