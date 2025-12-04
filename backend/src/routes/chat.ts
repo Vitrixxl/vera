@@ -1,13 +1,13 @@
 import { Extractor } from "@backend/extractor/extractor";
-import { db } from "@backend/lib/db";
-import { question } from "@backend/lib/db/schema";
-import { generateEmbedding } from "@backend/lib/utils";
-import { updateHotQuestion } from "@backend/services/questions";
+import { insertQuestion } from "@backend/services/questions";
 import { Elysia, t, sse } from "elysia";
 
 export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
   "/message",
   async function* ({ body: { message, files } }) {
+    if (message.trim() == "") {
+      return null;
+    }
     const bunFiles: Bun.BunFile[] = [];
     const extractor = new Extractor();
     if (files) {
@@ -21,15 +21,7 @@ export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
       yield sse(JSON.stringify(event));
     }
     await Promise.all(bunFiles.map((f) => f.delete()));
-    let embedding: number[] | null = null;
-    if (message.trim() != "") {
-      embedding = await generateEmbedding(message);
-    }
-    await db.insert(question).values({
-      question: message,
-      embedding,
-    });
-    updateHotQuestion();
+    insertQuestion(message);
   },
   {
     body: t.Object({

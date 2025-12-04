@@ -122,6 +122,15 @@ export const updateHotQuestion = async () => {
   }
 };
 
+export const insertQuestion = async (message: string) => {
+  const embedding = await generateEmbedding(message);
+  await db.insert(question).values({
+    question: message,
+    embedding,
+  });
+  updateHotQuestion();
+};
+
 // export const labelizeHotQuestions = async (
 //   questions: (Question & { count: number })[],
 // ): Promise<Omit<HotQuestion, "id">[]> => {

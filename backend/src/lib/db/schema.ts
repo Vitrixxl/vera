@@ -192,3 +192,7 @@ export const survey = pgTable("survey", {
 });
 export type Survey = typeof survey.$inferSelect;
 export type InsertSurvey = typeof survey.$inferInsert;
+
+export const telegramMessage = pgTable("telegram_message", {
+  id: integer().primaryKey(),
+});

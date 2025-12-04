@@ -1,4 +1,7 @@
+import { db } from "@backend/lib/db";
+import { telegramMessage } from "@backend/lib/db/schema";
 import { FileInfo } from "@backend/types";
+import { insertQuestion } from "./questions";
 
 const BOT_TOKEN = Bun.env["TG_BOT_TOKEN"];
 
@@ -50,7 +53,19 @@ export const downloadTelegramFile = async (fileId: string) => {
   );
 
   const arrayBuffer = await fileRes.arrayBuffer();
-  await Bun.write(tempFile, arrayBuffer);
-  console.log(`[Telegram] File downloaded to: ${tempFile.name}, size: ${arrayBuffer.byteLength} bytes`);
+  await tempFile.write(arrayBuffer);
   return tempFile;
+};
+
+export const insertTelegramMessage = async (id: number, message: string) => {
+  await db.insert(telegramMessage).values({ id });
+  await insertQuestion(message);
+};
+
+export const isAlreadyTreated = async (id: number) => {
+  Boolean(
+    await db.query.telegramMessage.findFirst({
+      where: (t, w) => w.eq(t.id, id),
+    }),
+  );
 };

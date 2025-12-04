@@ -24,7 +24,11 @@ export const questionsRoutes = new Elysia({ prefix: "/questions" })
   .get("/hot", async () => {
     return getHotQuestions();
   })
-  .post("/hot/generate", async () => {
-    await updateHotQuestion();
-    return { success: true };
-  }, { auth: true });
+  .post(
+    "/hot/generate",
+    async () => {
+      await updateHotQuestion();
+      return { success: true };
+    },
+    { auth: true },
+  );

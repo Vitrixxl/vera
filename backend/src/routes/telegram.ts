@@ -16,21 +16,23 @@
 import { Extractor } from "@backend/extractor/extractor";
 import {
   downloadTelegramFile,
+  insertTelegramMessage,
+  isAlreadyTreated,
   sendTelegramMessage,
 } from "@backend/services/telegram";
 import { TelegramMessage } from "@backend/types/telegram";
 import Elysia from "elysia";
 
-let count = 0;
 export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
   "/",
   async ({ body }) => {
-    console.log("[Telegram] Webhook received");
-    await Bun.write(`body${count}.json`, JSON.stringify(body, null, 2));
     const message = (body as any).message as TelegramMessage;
 
     if (!message) {
       console.log("[Telegram] No message in body, skipping");
+      return;
+    }
+    if (message.message_id && (await isAlreadyTreated(message.message_id))) {
       return;
     }
 
@@ -84,6 +86,8 @@ export const telegramRoutes = new Elysia({ prefix: "/webhook/telegram" }).post(
     }
 
     await sendTelegramMessage(message.chat.id, veraResponse);
+    await insertTelegramMessage(message.message_id, message.text || "");
+    message.message_id;
     for (const f of files) {
       await f.delete();
     }
