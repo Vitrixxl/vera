@@ -6,11 +6,13 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [],
   template: `
-    <div class="w-full min-h-screen bg-[#f7f3ec] flex flex-col" style="background-image: url('/images/background.jpg');">
-  
-      <div class="px-4 pt-6 lg:px-16 lg:pt-10">
-        <img src="/images/vera-icon.png" alt="vera" class="w-20 lg:w-28" />
-      </div>
+    <div class="flex flex-col h-screen font-sans text-[#000000] bg-cover bg-center"
+     style="background-image: url('/images/background.jpg'); background-color: #F5ECDE;">
+      
+  <header class="flex-none px-6 py-4 border-b border-black flex justify-between items-center bg-transparent z-10">
+    <img src="/images/vera-icon.png" alt="Vera Logo" class="h-8 w-auto">
+  </header>
+
       <div class="w-full h-px bg-black mt-4 lg:mt-6"></div>
       <div class="px-4 mt-10 flex flex-col lg:px-16">
         <h2 class="text-2xl font-semibold font-[Lastik] md:text-left md:text-3xl lg:text-4xl">

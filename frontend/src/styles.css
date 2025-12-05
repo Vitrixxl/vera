@@ -1,3 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import "tailwindcss";
+
+/* Dans ton styles.css ou dans le bloc <style> du composant */
+@keyframes dot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-dot-bounce {
+  animation: dot-bounce 1s infinite;
+}
