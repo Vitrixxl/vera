@@ -162,6 +162,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const statsData = this.stats();
     if (!statsData) return;
 
+    // Palette beige et vert uniquement
+    const APP_COLORS = {
+      green1: '#DBF9BE',  // Vert clair
+      green2: '#C5F0A0',  // Vert moyen
+      green3: '#A8E572',  // Vert foncé
+      green4: '#8BD44A',  // Vert plus foncé
+      beige1: '#F5ECDE',  // Beige clair
+      beige2: '#E8D9C5',  // Beige moyen
+      beige3: '#D4C4A8',  // Beige foncé
+      beige4: '#C0AE8B',  // Beige plus foncé
+    };
+
     // Rating Chart (Bar horizontal)
     const ratingCanvas = this.ratingChartRef()?.nativeElement;
     if (ratingCanvas) {
@@ -172,7 +184,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: ['1 - Décevant', '2', '3', '4', '5 - Excellent'],
           datasets: [{
             data: ratingData,
-            backgroundColor: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'],
+            backgroundColor: [APP_COLORS.beige4, APP_COLORS.beige3, APP_COLORS.beige2, APP_COLORS.green2, APP_COLORS.green1],
+            borderColor: '#000000',
+            borderWidth: 1,
             borderRadius: 4,
           }]
         },
@@ -195,7 +209,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'],
+            backgroundColor: [APP_COLORS.green1, APP_COLORS.green3, APP_COLORS.beige1, APP_COLORS.beige3],
+            borderColor: '#000000',
+            borderWidth: 1,
           }]
         },
         options: {
@@ -215,7 +231,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: ['#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6'].map(c => c + 'cc'),
+            backgroundColor: [APP_COLORS.green1 + 'cc', APP_COLORS.green2 + 'cc', APP_COLORS.green3 + 'cc', APP_COLORS.beige1 + 'cc', APP_COLORS.beige2 + 'cc', APP_COLORS.beige3 + 'cc'],
+            borderColor: '#000000',
+            borderWidth: 1,
           }]
         },
         options: {
@@ -235,7 +253,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: '#f59e0b',
+            backgroundColor: APP_COLORS.green2,
+            borderColor: '#000000',
+            borderWidth: 1,
             borderRadius: 4,
           }]
         },
@@ -257,7 +277,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'],
+            backgroundColor: [APP_COLORS.green1, APP_COLORS.green3, APP_COLORS.beige1, APP_COLORS.beige2, APP_COLORS.beige4],
+            borderColor: '#000000',
+            borderWidth: 1,
           }]
         },
         options: {
@@ -277,7 +299,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: ['#a855f7', '#8b5cf6', '#6366f1', '#4f46e5'],
+            backgroundColor: [APP_COLORS.green1, APP_COLORS.green4, APP_COLORS.beige1, APP_COLORS.beige4],
+            borderColor: '#000000',
+            borderWidth: 1,
           }]
         },
         options: {
@@ -297,7 +321,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'],
+            backgroundColor: [APP_COLORS.green1, APP_COLORS.green2, APP_COLORS.green3, APP_COLORS.green4, APP_COLORS.beige1, APP_COLORS.beige2, APP_COLORS.beige3, APP_COLORS.beige4],
+            borderColor: '#000000',
+            borderWidth: 1,
           }]
         },
         options: {

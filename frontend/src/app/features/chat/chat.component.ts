@@ -16,9 +16,12 @@ export class ChatComponent {
   messages = signal<any[]>([]);
   selectedFiles = signal<File[]>([]);
   isLoading = signal(false);
+  isRecording = signal(false);
   messageIdCounter = 0;
   showUrlInput = signal(false);
   urlInput = '';
+
+  private recognition: any = null;
 
   readonly ACCEPTED_MIME_TYPES = [
     'video/mp4', 'image/png', 'image/jpeg', 'image/webp', 'video/webm',
@@ -238,7 +241,64 @@ export class ChatComponent {
     }
   }
 
+  toggleVoiceRecognition() {
+    if (this.isRecording()) {
+      this.stopRecording();
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('La reconnaissance vocale n\'est pas supportée par votre navigateur.');
+      return;
+    }
+
+    this.recognition = new SpeechRecognition();
+    this.recognition.lang = 'fr-FR';
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+
+    this.recognition.onstart = () => {
+      this.isRecording.set(true);
+    };
+
+    this.recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        this.inputText += (this.inputText ? ' ' : '') + finalTranscript;
+      }
+    };
+
+    this.recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      this.isRecording.set(false);
+    };
+
+    this.recognition.onend = () => {
+      this.isRecording.set(false);
+    };
+
+    this.recognition.start();
+  }
+
+  private stopRecording() {
+    if (this.recognition) {
+      this.recognition.stop();
+      this.recognition = null;
+    }
+    this.isRecording.set(false);
+  }
+
   goToSurvey() {
-  this.router.navigate(['/survey']);
-}
+    this.router.navigate(['/survey']);
+  }
 }

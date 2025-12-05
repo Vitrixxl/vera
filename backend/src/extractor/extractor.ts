@@ -337,7 +337,7 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
 
     // Process YouTube URLs
     if (youtubeUrls.length > 0) {
-      yield { type: "step", data: "youtube" };
+      yield { type: "step", data: "Analyse du contenu YouTube" };
       for (const url of youtubeUrls) {
         const videoId = this.extractYoutubeVideoId(url);
         if (!videoId) continue;
@@ -364,7 +364,7 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
 
     // Process files
     if (files.length > 0) {
-      yield { type: "step", data: "files" };
+      yield { type: "step", data: "Analyse des fichiers" };
       for (const f of files) {
         if (f.type.startsWith("video")) {
           text = await this.extractTextFromVideo(f.name!);
@@ -378,14 +378,14 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
 
     // Process other URLs with Gemini + Google Search
     if (otherUrls.length > 0) {
-      yield { type: "step", data: "urls" };
+      yield { type: "step", data: "Analyse des liens" };
       const urlContent = await this.summarizeUrlsWithGemini(otherUrls, prompt);
       if (urlContent) {
         filesTextContent.push(`[Contenu des liens]\n${urlContent}`);
       }
     }
 
-    yield { type: "step", data: "summarizing" };
+    yield { type: "step", data: "Résumé des données extraites" };
     const summary = await this.summarizeTextContent(filesTextContent, prompt);
     for await (const token of this.askVera(summary)) {
       yield { type: "token", data: token };
