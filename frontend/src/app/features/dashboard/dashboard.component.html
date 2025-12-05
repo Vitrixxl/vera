@@ -1,10 +1,10 @@
 <div class="flex flex-col min-h-screen font-sans text-[#000000] bg-cover bg-center bg-fixed"
      style="background-image: url('/images/background.jpg'); background-color: #F5ECDE;">
-     
-     
-     
+
+
+
      <header class="flex-none px-6 py-4 border-b border-black flex items-center bg-[#F5ECDE] z-10 relative">
-    
+
     <!-- Logo à gauche -->
     <div class="flex-none">
         <img src="/images/vera-icon.png" alt="Vera Logo" class="h-8 w-auto">
@@ -18,12 +18,12 @@
   </header>
 
       <main class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
+
         <div class="flex justify-end gap-4">
           <button
             (click)="downloadCSV()"
             [disabled]="downloadingCSV()"
-            class="group px-6 py-2.5 text-sm font-medium bg-[#22C55E] text-white rounded-full shadow-lg hover:bg-green-600 hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            class="group px-6 py-2.5 text-sm font-medium bg-[#DBF9BE] text-black border border-black rounded-full shadow-sm hover:bg-[#c5f0a0] hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             @if (downloadingCSV()) {
               <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@
           </button>
           <button
             (click)="goToSurvey()"
-            class="px-6 py-2.5 text-sm font-medium bg-[#4F46E5] text-white rounded-full shadow-lg hover:bg-indigo-600 hover:shadow-xl transition-all flex items-center gap-2"
+            class="px-6 py-2.5 text-sm font-medium bg-[#F5ECDE] text-black border border-black rounded-full shadow-sm hover:bg-[#e8d9c5] hover:shadow-md transition-all flex items-center gap-2"
           >
             Voir le Survey
           </button>
@@ -104,7 +104,7 @@
         }
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           <div class="bg-white rounded-xl border border-gray-900 p-6 flex flex-col h-full shadow-sm relative">
             <h3 class="text-base font-bold text-gray-900 mb-4">Rechercher des surveys</h3>
             <div class="relative w-full">
@@ -115,7 +115,7 @@
                 placeholder="Ecrivez ici..."
                 class="w-full bg-gray-100 border-none rounded-lg py-3 px-4 pr-10 text-sm focus:ring-2 focus:ring-gray-900 placeholder-gray-500"
               />
-              <button 
+              <button
                 (click)="searchSurveys()"
                 [disabled]="searchingSurveys()"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"
@@ -152,7 +152,7 @@
                 placeholder="Ecrivez ici..."
                 class="w-full bg-gray-100 border-none rounded-lg py-3 px-4 pr-10 text-sm focus:ring-2 focus:ring-gray-900 placeholder-gray-500"
               />
-              <button 
+              <button
                 (click)="searchQuestions()"
                 [disabled]="searchingQuestions()"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"
@@ -205,7 +205,7 @@
 
         @if (!isLoading() && stats()) {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             <div class="bg-white rounded-xl border border-gray-900 p-6 shadow-sm min-h-[300px] flex flex-col">
               <h3 class="text-base font-bold text-gray-900 mb-2">Note d'expérience (Q5)</h3>
               <p class="text-xs text-gray-400 mb-4">1 - Décevant / 5 - Excellent</p>
@@ -249,13 +249,6 @@
               </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-900 p-6 shadow-sm min-h-[300px] flex flex-col lg:col-span-3">
-              <h3 class="text-base font-bold text-gray-900 mb-4">Pays</h3>
-              <div class="flex-1 relative w-full h-full">
-                <canvas #countryChart></canvas>
-              </div>
-            </div>
-
           </div>
         }
 
@@ -263,7 +256,7 @@
           <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50">
             <h2 class="text-lg font-bold text-gray-900">Réponses récentes</h2>
           </div>
-          
+
           @if (isLoading()) {
             <div class="p-8 text-center text-gray-500">Chargement...</div>
           } @else if (surveys().length === 0) {
@@ -283,7 +276,7 @@
                     >
                       {{ survey.q5ExperienceRating }}
                     </div>
-                    
+
                     <div>
                       <div class="flex gap-2 mb-1">
                          @for (channel of survey.q1Channels; track channel) {
@@ -293,7 +286,7 @@
                       <p class="text-sm text-gray-400">{{ formatDate(survey.createdAt) }}</p>
                     </div>
                   </div>
-                  
+
                   <svg class="w-5 h-5 text-gray-300 group-hover:text-gray-900 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
@@ -302,13 +295,22 @@
             </div>
              @if (hasMore()) {
               <div class="p-4 text-center border-t border-gray-100">
-                <button (click)="loadMoreSurveys()" [disabled]="loadingMore()" class="text-sm text-indigo-600 font-medium hover:underline">
+                <button (click)="loadMoreSurveys()" [disabled]="loadingMore()" class="text-sm text-black font-medium hover:underline">
                   {{ loadingMore() ? 'Chargement...' : 'Voir plus' }}
                 </button>
               </div>
             }
           }
         </div>
+
+        @if (!isLoading() && stats()) {
+          <div class="bg-white rounded-xl border border-gray-900 p-6 shadow-sm min-h-[300px] flex flex-col">
+            <h3 class="text-base font-bold text-gray-900 mb-4">Répartition par pays</h3>
+            <div class="flex-1 relative w-full h-full">
+              <canvas #countryChart></canvas>
+            </div>
+          </div>
+        }
 
       </main>
 
@@ -323,7 +325,7 @@
                 </svg>
               </button>
             </div>
-            
+
             <div class="p-6 space-y-8">
               <div class="flex flex-col items-center justify-center py-6 bg-gray-50 rounded-lg border border-gray-200 border-dashed">
                 <span class="text-5xl font-bold mb-2"
@@ -361,7 +363,7 @@
                         }
                     </div>
                  </div>
-                 
+
                  @if (selectedSurvey()!.q13Comment) {
                    <div class="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
                       <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Commentaire (Q13)</p>
