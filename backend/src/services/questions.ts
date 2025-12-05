@@ -122,13 +122,62 @@ export const updateHotQuestion = async () => {
   }
 };
 
-export const insertQuestion = async (message: string) => {
+export const insertQuestion = async (message: string, country?: string) => {
   const embedding = await generateEmbedding(message);
-  await db.insert(question).values({
+  const [inserted] = await db.insert(question).values({
     question: message,
     embedding,
-  });
+    country,
+  }).returning();
+
   updateHotQuestion();
+
+  // Return the inserted question for broadcasting
+  return inserted;
+};
+
+export const getLatestQuestions = async (limit: number = 10, cursor: number = 0) => {
+  const questions = await db.query.question.findMany({
+    orderBy: (q, { desc }) => desc(q.createdAt),
+    limit: limit + 1,
+    offset: cursor,
+    columns: {
+      id: true,
+      question: true,
+      createdAt: true,
+      country: true,
+    },
+  });
+
+  const hasMore = questions.length > limit;
+  const data = hasMore ? questions.slice(0, limit) : questions;
+
+  return {
+    questions: data,
+    nextCursor: hasMore ? cursor + limit : null,
+  };
+};
+
+export const getQuestionsStats = async () => {
+  const total = await db.select({ count: count() }).from(question);
+
+  const countryDistribution = await db
+    .select({
+      country: question.country,
+      count: count(),
+    })
+    .from(question)
+    .groupBy(question.country);
+
+  const countryMap: Record<string, number> = {};
+  for (const row of countryDistribution) {
+    countryMap[row.country || "Unknown"] = row.count;
+  }
+
+  return {
+    total: total[0]?.count || 0,
+    countryDistribution: countryMap,
+  };
 };
 
 // export const labelizeHotQuestions = async (

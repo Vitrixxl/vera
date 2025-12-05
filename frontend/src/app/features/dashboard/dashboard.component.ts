@@ -93,13 +93,17 @@ interface SurveyStats {
   distributions: Record<string, Record<string, number>>;
 }
 
+interface QuestionsStats {
+  total: number;
+  countryDistribution: Record<string, number>;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: `./dashboard.component.html`,
 })
-
 export class DashboardComponent implements OnInit, OnDestroy {
   stats = signal<SurveyStats | null>(null);
   surveys = signal<any[]>([]);
@@ -109,6 +113,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentCursor = 0;
   limit = 10;
   selectedSurvey = signal<any>(null);
+
+  // Questions data
+  questionsStats = signal<QuestionsStats | null>(null);
+  latestQuestions = signal<any[]>([]);
+  loadingQuestions = signal(false);
+  loadingMoreQuestions = signal(false);
+  hasMoreQuestions = signal(true);
+  questionsCursor = 0;
 
   // Search & Hot Questions
   surveySearchQuery = '';
@@ -129,9 +141,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recommendChartRef = viewChild<ElementRef<HTMLCanvasElement>>('recommendChart');
   discoveryChartRef = viewChild<ElementRef<HTMLCanvasElement>>('discoveryChart');
   countryChartRef = viewChild<ElementRef<HTMLCanvasElement>>('countryChart');
+  questionsCountryChartRef = viewChild<ElementRef<HTMLCanvasElement>>('questionsCountryChart');
 
   private charts: Chart[] = [];
   private wsConnection: any = null;
+  private questionsWsConnection: any = null;
 
   constructor(private router: Router) {
     effect(() => {
@@ -144,6 +158,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadData();
+    this.loadQuestionsData();
     this.setupWebSocket();
     this.loadHotQuestions();
   }
@@ -151,6 +166,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.wsConnection) {
       this.wsConnection.close();
+    }
+    if (this.questionsWsConnection) {
+      this.questionsWsConnection.close();
     }
     this.charts.forEach(chart => chart.destroy());
   }
@@ -340,20 +358,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private setupWebSocket() {
+    // Survey WebSocket
     this.wsConnection = api.survey.ws.subscribe();
-
     this.wsConnection.on('message', ({ data }: { data: { key: string; payload: any } }) => {
       if (data.key === 'new-survey') {
         const { newStats, newSurvey } = data.payload;
-
-        // Update stats
         if (newStats) {
           this.stats.set(newStats as SurveyStats);
         }
-
-        // Add new survey to the top of the list
         if (newSurvey) {
           this.surveys.update(current => [{ ...newSurvey, createdAt: new Date() }, ...current]);
+        }
+      }
+    });
+
+    // Questions WebSocket
+    this.questionsWsConnection = api.questions.ws.subscribe();
+    this.questionsWsConnection.on('message', ({ data }: { data: { key: string; payload: any } }) => {
+      if (data.key === 'new-question') {
+        const { newQuestion, newStats } = data.payload;
+        if (newStats) {
+          this.questionsStats.set(newStats as QuestionsStats);
+        }
+        if (newQuestion) {
+          this.latestQuestions.update(current => [{ ...newQuestion, createdAt: new Date() }, ...current]);
         }
       }
     });
@@ -586,6 +614,116 @@ export class DashboardComponent implements OnInit, OnDestroy {
       console.error('Error loading hot questions:', error);
     } finally {
       this.loadingHotQuestions.set(false);
+    }
+  }
+
+  async loadQuestionsData() {
+    this.loadingQuestions.set(true);
+    try {
+      // Load questions stats
+      const statsResponse = await api.questions.stats.get();
+      if (statsResponse.data) {
+        this.questionsStats.set(statsResponse.data as QuestionsStats);
+        setTimeout(() => this.initQuestionsChart(), 0);
+      }
+
+      // Load latest questions
+      await this.loadLatestQuestions();
+    } catch (error) {
+      console.error('Error loading questions data:', error);
+    } finally {
+      this.loadingQuestions.set(false);
+    }
+  }
+
+  async loadLatestQuestions() {
+    try {
+      const response = await api.questions.latest.get({
+        query: {
+          limit: this.limit,
+          cursor: this.questionsCursor,
+        },
+      });
+
+      if (response.data) {
+        const data = response.data as any;
+        this.latestQuestions.set(data.questions || []);
+        this.hasMoreQuestions.set(data.nextCursor !== null);
+        if (data.nextCursor) {
+          this.questionsCursor = data.nextCursor;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading latest questions:', error);
+    }
+  }
+
+  async loadMoreQuestions() {
+    if (this.loadingMoreQuestions() || !this.hasMoreQuestions()) return;
+
+    this.loadingMoreQuestions.set(true);
+    try {
+      const response = await api.questions.latest.get({
+        query: {
+          limit: this.limit,
+          cursor: this.questionsCursor,
+        },
+      });
+
+      if (response.data) {
+        const data = response.data as any;
+        this.latestQuestions.update(current => [...current, ...(data.questions || [])]);
+        this.hasMoreQuestions.set(data.nextCursor !== null);
+        if (data.nextCursor) {
+          this.questionsCursor = data.nextCursor;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading more questions:', error);
+    } finally {
+      this.loadingMoreQuestions.set(false);
+    }
+  }
+
+  private initQuestionsChart() {
+    const questionsStatsData = this.questionsStats();
+    if (!questionsStatsData) return;
+
+    const APP_COLORS = {
+      green1: '#DBF9BE',
+      green2: '#C5F0A0',
+      beige1: '#F5ECDE',
+      beige2: '#E8D9C5',
+    };
+
+    const countryCanvas = this.questionsCountryChartRef()?.nativeElement;
+    if (countryCanvas) {
+      const distribution = questionsStatsData.countryDistribution;
+      const items = Object.entries(distribution)
+        .map(([key, count]) => ({ label: key, count }))
+        .sort((a, b) => b.count - a.count);
+
+      this.charts.push(new Chart(countryCanvas, {
+        type: 'bar',
+        data: {
+          labels: items.map(i => i.label),
+          datasets: [{
+            data: items.map(i => i.count),
+            backgroundColor: items.map((_, index) =>
+              index % 2 === 0 ? APP_COLORS.green1 : APP_COLORS.beige2
+            ),
+            borderColor: '#000000',
+            borderWidth: 1,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      }));
     }
   }
 }

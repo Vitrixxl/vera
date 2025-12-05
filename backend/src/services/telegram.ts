@@ -59,7 +59,13 @@ export const downloadTelegramFile = async (fileId: string) => {
 
 export const insertTelegramMessage = async (id: number, message: string) => {
   await db.insert(telegramMessage).values({ id });
-  await insertQuestion(message);
+  const newQuestion = await insertQuestion(message);
+
+  // Broadcast via WebSocket
+  const { broadcastNewQuestion } = await import("@backend/routes/quetions");
+  const { getQuestionsStats } = await import("@backend/services/questions");
+  const newStats = await getQuestionsStats();
+  broadcastNewQuestion(newQuestion, newStats);
 };
 
 export const isAlreadyTreated = async (id: number) => {

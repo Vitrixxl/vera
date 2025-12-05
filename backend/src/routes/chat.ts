@@ -1,5 +1,6 @@
 import { Extractor } from "@backend/extractor/extractor";
-import { insertQuestion } from "@backend/services/questions";
+import { insertQuestion, getQuestionsStats } from "@backend/services/questions";
+import { broadcastNewQuestion } from "./quetions";
 import { Elysia, t, sse } from "elysia";
 
 export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
@@ -21,7 +22,9 @@ export const webAppRoutes = new Elysia({ prefix: "/chat" }).post(
       yield sse(JSON.stringify(event));
     }
     await Promise.all(bunFiles.map((f) => f.delete()));
-    insertQuestion(message);
+    const newQuestion = await insertQuestion(message);
+    const newStats = await getQuestionsStats();
+    broadcastNewQuestion(newQuestion, newStats);
   },
   {
     body: t.Object({
