@@ -1,31 +1,18 @@
-import {
-  GoogleGenAI,
-  createUserContent,
-  createPartFromUri,
-} from "@google/genai";
-import OpenAI from "openai";
-import Tesseract from "tesseract.js";
+import { createUserContent, createPartFromUri } from "@google/genai";
 import { tryCatchAsync } from "../lib/utils";
+import { openai } from "../lib/openai";
+import { gemini } from "../lib/gemini";
 import { fetchTranscript } from "youtube-transcript-plus";
 
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
 const INSTAGRAM_REGEX = /https?:\/\/(www\.)?instagram\.com/i;
 const TIKTOK_REGEX = /https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com)/i;
 const YOUTUBE_REGEX = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)/i;
+const FACEBOOK_REGEX =
+  /https?:\/\/(www\.)?(facebook\.com|fb\.watch|fb\.com|m\.facebook\.com)/i;
+const X_REGEX = /https?:\/\/(www\.)?(twitter\.com|x\.com)/i;
 
 export class Extractor {
-  private openaiClient: OpenAI;
-  private geminiClient: GoogleGenAI;
-
-  constructor() {
-    this.openaiClient = new OpenAI({
-      apiKey: Bun.env["OPENAI_API_KEY"],
-    });
-    this.geminiClient = new GoogleGenAI({
-      apiKey: Bun.env["GEMINI_API_KEY"],
-    });
-  }
-
   /**
    * Extract URLs from text and categorize them
    */
@@ -33,12 +20,16 @@ export class Extractor {
     instagramUrls: string[];
     tiktokUrls: string[];
     youtubeUrls: string[];
+    facebookUrls: string[];
+    xUrls: string[];
     otherUrls: string[];
   } {
     const allUrls = text.match(URL_REGEX) || [];
     const instagramUrls: string[] = [];
     const tiktokUrls: string[] = [];
     const youtubeUrls: string[] = [];
+    const facebookUrls: string[] = [];
+    const xUrls: string[] = [];
     const otherUrls: string[] = [];
 
     for (const url of allUrls) {
@@ -48,12 +39,23 @@ export class Extractor {
         tiktokUrls.push(url);
       } else if (YOUTUBE_REGEX.test(url)) {
         youtubeUrls.push(url);
+      } else if (FACEBOOK_REGEX.test(url)) {
+        facebookUrls.push(url);
+      } else if (X_REGEX.test(url)) {
+        xUrls.push(url);
       } else {
         otherUrls.push(url);
       }
     }
 
-    return { instagramUrls, tiktokUrls, youtubeUrls, otherUrls };
+    return {
+      instagramUrls,
+      tiktokUrls,
+      youtubeUrls,
+      facebookUrls,
+      xUrls,
+      otherUrls,
+    };
   }
 
   /**
@@ -95,7 +97,7 @@ ${urlList}
 Utilise la recherche Google pour accéder au contenu de ces liens et extraire les informations principales. Résume les affirmations ou claims présents dans ces contenus.`;
 
     const result = await tryCatchAsync(
-      this.geminiClient.models.generateContent({
+      gemini.models.generateContent({
         model: "gemini-2.5-flash",
         contents: createUserContent([prompt]),
         config: {
@@ -120,27 +122,52 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
   ): Promise<string | null> => {
     const file = Bun.file(path);
     if (!(await file.exists())) {
-      console.log("File do not exists");
+      console.log("[Extractor] Image file does not exist:", path);
       return null;
     }
 
-    const detectResult = await tryCatchAsync<any>(Tesseract.detect(path));
-    if (detectResult.error) {
-      console.error("Error detecting language in image:", detectResult.error);
-      return null;
-    }
+    console.log("[Extractor] Uploading image to Gemini:", path);
 
-    const language = detectResult.data.data.language;
-
-    const recognizeResult = await tryCatchAsync(
-      Tesseract.recognize(path, language),
+    const uploadResult = await tryCatchAsync(
+      gemini.files.upload({
+        file: path,
+        config: { mimeType: file.type },
+      }),
     );
-    if (recognizeResult.error) {
-      console.error("Error recognizing text in image:", recognizeResult.error);
+
+    if (uploadResult.error) {
+      console.error(
+        "[Extractor] Error uploading image to Gemini:",
+        uploadResult.error,
+      );
       return null;
     }
 
-    return recognizeResult.data.data.text;
+    const uploadedFile = uploadResult.data;
+    console.log("[Extractor] Image uploaded, extracting text...");
+
+    const extractionResult = await tryCatchAsync(
+      gemini.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: createUserContent([
+          createPartFromUri(uploadedFile.uri!, uploadedFile.mimeType!),
+          "Extract ALL text visible in this image. Output ONLY the extracted text, nothing else. Preserve the original language of the text.",
+        ]),
+      }),
+    );
+
+    if (extractionResult.error) {
+      console.error(
+        "[Extractor] Error extracting text with Gemini:",
+        extractionResult.error,
+      );
+      return null;
+    }
+
+    const text = extractionResult.data.text;
+    console.log("[Extractor] Text extraction completed:", text);
+
+    return text || null;
   };
 
   private extractTextFromVideo = async (
@@ -155,7 +182,7 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
     console.log("[Extractor] Uploading video to Gemini:", path);
 
     const uploadResult = await tryCatchAsync(
-      this.geminiClient.files.upload({
+      gemini.files.upload({
         file: path,
         config: { mimeType: file.type },
       }),
@@ -184,7 +211,7 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const fileInfo = await tryCatchAsync(
-        this.geminiClient.files.get({ name: uploadedFile.name! }),
+        gemini.files.get({ name: uploadedFile.name! }),
       );
 
       if (fileInfo.error) {
@@ -207,7 +234,7 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
     console.log("[Extractor] File is ACTIVE, generating transcription...");
 
     const transcriptionResult = await tryCatchAsync(
-      this.geminiClient.models.generateContent({
+      gemini.models.generateContent({
         model: "gemini-2.5-flash",
         contents: createUserContent([
           createPartFromUri(uploadedFile.uri!, uploadedFile.mimeType!),
@@ -252,7 +279,7 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
       : `Extracted content:\n${combinedText}\n\nIdentify the main claim and formulate a fact-checking question.`;
 
     const result = await tryCatchAsync(
-      this.openaiClient.chat.completions.create({
+      openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
@@ -320,14 +347,27 @@ Utilise la recherche Google pour accéder au contenu de ces liens et extraire le
     let text!: string | null;
 
     // Extract URLs from prompt
-    const { instagramUrls, tiktokUrls, youtubeUrls, otherUrls } =
-      this.extractUrls(prompt);
+    const {
+      instagramUrls,
+      tiktokUrls,
+      youtubeUrls,
+      facebookUrls,
+      xUrls,
+      otherUrls,
+    } = this.extractUrls(prompt);
 
     // If social media URLs are found, return early with a message
-    if (instagramUrls.length > 0 || tiktokUrls.length > 0) {
+    if (
+      instagramUrls.length > 0 ||
+      tiktokUrls.length > 0 ||
+      facebookUrls.length > 0 ||
+      xUrls.length > 0
+    ) {
       const platforms: string[] = [];
       if (instagramUrls.length > 0) platforms.push("Instagram");
       if (tiktokUrls.length > 0) platforms.push("TikTok");
+      if (facebookUrls.length > 0) platforms.push("Facebook");
+      if (xUrls.length > 0) platforms.push("X (Twitter)");
 
       const message = `Je ne peux malheureusement pas accéder au contenu des liens ${platforms.join(" et ")}. Pour que je puisse vous aider, vous pouvez :\n\n- **M'envoyer directement la vidéo ou l'image** en pièce jointe\n- **Me décrire le contenu** que vous souhaitez vérifier (texte, affirmations, etc.)\n\nJe serai alors en mesure d'analyser l'information et de vous fournir une vérification.`;
 
