@@ -311,24 +311,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }));
     }
 
-    // Country Chart (Doughnut)
+    // Country Chart (Bar horizontal)
     const countryCanvas = this.countryChartRef()?.nativeElement;
     if (countryCanvas) {
       const items = this.getDistributionItems('country');
       this.charts.push(new Chart(countryCanvas, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
           labels: items.map(i => i.label),
           datasets: [{
             data: items.map(i => i.count),
-            backgroundColor: [APP_COLORS.green1, APP_COLORS.green2, APP_COLORS.green3, APP_COLORS.green4, APP_COLORS.beige1, APP_COLORS.beige2, APP_COLORS.beige3, APP_COLORS.beige4],
+            backgroundColor: items.map((_, index) =>
+              index % 2 === 0 ? APP_COLORS.green1 : APP_COLORS.beige2
+            ),
             borderColor: '#000000',
             borderWidth: 1,
+            borderRadius: 4,
           }]
         },
         options: {
+          indexAxis: 'y',
           responsive: true,
-          plugins: { legend: { position: 'bottom' } }
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
         }
       }));
     }
